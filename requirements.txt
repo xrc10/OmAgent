@@ -1,3 +1,4 @@
 scenedetect[opencv]>=0.6.2
 pydub>=0.25.1
 face_recognition
+json_repair
