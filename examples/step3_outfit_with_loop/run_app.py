@@ -33,7 +33,7 @@ container.from_config(CURRENT_PATH.joinpath('container.yaml'))
 
 
 # Initialize workflow for outfit recommendations with loops
-workflow = ConductorWorkflow(name='step3_outfit_with_loop')
+workflow = ConductorWorkflow(name='step3_outfit_with_loop_ruox')
 
 # Define workflow tasks:
 # 1. Get initial outfit image input
