@@ -33,8 +33,6 @@ services:
 
   conductor-redis:
     image: redis:6.2.3-alpine
-    volumes:
-      - ../server/config/redis.conf:/usr/local/etc/redis/redis.conf
     networks:
       - internal
     ports:
