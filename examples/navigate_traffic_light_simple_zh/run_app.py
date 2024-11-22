@@ -61,6 +61,6 @@ config_path = CURRENT_PATH.joinpath('configs')
 agent_client = AppClient(
     interactor=workflow, 
     config_path=config_path, 
-    workers=[FindTrafficLightInput()]
+    workers=[FindTrafficLightInput()] * 50
 )
 agent_client.start_interactor()
