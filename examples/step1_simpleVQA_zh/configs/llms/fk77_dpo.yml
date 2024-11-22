@@ -1,0 +1,6 @@
+name: OpenaiGPTLLM
+model_id: omchat-qwen2-7b-siglip-multi-fk77_dpo
+api_key: NDVjMjFlYTFkMWY0NjY5ODBmYjlAM3U3MXByQnM=
+endpoint: http://172.16.38.38:30002
+temperature: 0
+vision: true

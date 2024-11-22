@@ -78,7 +78,7 @@ class FindObjectDetection(BaseLLMBackend, BaseWorker):
         content = self._extract_from_result(content)
 
         if isinstance(content, str):
-            content = {"decision": "not_found", "stop_search": False, "reason": "Return is not valid JSON."}
+            content = {"decision": "not_found", "stop_search": False, "reason": "返回的不是有效的JSON。"}
 
         # Return decision and handle feedback if more information is needed
         if content.get("decision") == "found":
@@ -101,13 +101,13 @@ class FindObjectDetection(BaseLLMBackend, BaseWorker):
             # Send feedback via callback and return
             self.callback.send_answer(
                 agent_id=self.workflow_instance_id,
-                msg=content.get("reason", "Object not found, continuing search...")
+                msg=content.get("reason", "物体未找到，继续搜索...")
             )
 
             return {
                 "object_found": False,
                 "stop_search": False,
-                "feedback": content.get("reason", "Object not found, continuing search...")
+                "feedback": content.get("reason", "物体未找到，继续搜索...")
             }
 
     def _extract_from_result(self, result: str) -> dict:

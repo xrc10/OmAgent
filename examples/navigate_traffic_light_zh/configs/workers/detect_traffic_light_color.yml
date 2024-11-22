@@ -1,0 +1,2 @@
+name: DetectTrafficLightColor
+llm: ${sub| internvl2}

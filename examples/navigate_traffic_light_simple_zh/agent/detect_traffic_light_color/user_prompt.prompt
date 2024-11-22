@@ -1,0 +1,14 @@
+Your task is to analyze the image and determine the color of a traffic light.
+
+You will receive:
+- An image taken from smart glasses camera showing the user's perspective of the street scene.
+
+Analyze the image and respond with:
+{
+    "light_color": one of ["红色", "绿色", "黄色", "未找到"]
+}
+
+Note: If multiple traffic lights are visible, focus on the most relevant one. If the traffic light is not clearly visible, respond with "not_found".
+
+Input Information:
+- Image: {{image}}

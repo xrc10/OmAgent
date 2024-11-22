@@ -17,7 +17,7 @@ CURRENT_PATH = root_path = Path(__file__).parents[0]
 
 
 @registry.register_worker()
-class FindObjectDetection(BaseLLMBackend, BaseWorker):
+class DetectTrafficLightColor(BaseLLMBackend, BaseWorker):
     """Object detection processor that determines if the requested object is found in the image.
     
     This processor evaluates whether the requested object exists in the provided image
@@ -51,26 +51,10 @@ class FindObjectDetection(BaseLLMBackend, BaseWorker):
                 - 'stop_search': True if user wants to stop searching
                 - 'feedback': Additional information about the search result
         """
-        # Retrieve context data from short-term memory, using empty lists as defaults
-        if self.stm(self.workflow_instance_id).get("user_instruction"):   
-            user_instruct = self.stm(self.workflow_instance_id).get("user_instruction")
-        else:
-            user_instruct = []
-        
-        if self.stm(self.workflow_instance_id).get("search_info"):
-            search_info = self.stm(self.workflow_instance_id).get("search_info")
-        else:
-            search_info = []
-
         logging.info(self.prompts)
-        logging.info(user_instruct)
         # Query LLM to analyze available information
         chat_complete_res = self.simple_infer(
-            instruction=str(user_instruct),
-            # previous_search=str(search_info),
             image='<image_0>',
-            temperature=1.0,
-            top_p=0.95,
         )
         logging.info(chat_complete_res)
         content = chat_complete_res["choices"][0]["message"].get("content")
@@ -78,36 +62,36 @@ class FindObjectDetection(BaseLLMBackend, BaseWorker):
         content = self._extract_from_result(content)
 
         if isinstance(content, str):
-            content = {"decision": "not_found", "stop_search": False, "reason": "Return is not valid JSON."}
+            content = {"decision": "wait", "reason": "Return is not valid JSON."}
 
         # Return decision and handle feedback if more information is needed
-        if content.get("decision") == "found":
-            object_description = content.get("object description")
-            self.stm(self.workflow_instance_id)['object_description'] = object_description
-
-            object_location = content.get("object_location")
-            self.stm(self.workflow_instance_id)['object_location'] = object_location
-
-            return {
-                "object_found": True,
-                "stop_search": True,
-                "feedback": content.get("reason", "Object found!"),
-            }
-        else:
-            # update search info
-            search_info.append(content.get("reason", "Object found!"))
-            self.stm(self.workflow_instance_id)['search_info'] = search_info
-
-            # Send feedback via callback and return
+        if content.get("decision") == "pass":
+            traffic_light_location = content.get("traffic_light_location")
+            self.stm(self.workflow_instance_id)['traffic_light_location'] = traffic_light_location
+            
+            # send message to user
             self.callback.send_answer(
                 agent_id=self.workflow_instance_id,
-                msg=content.get("reason", "Object not found, continuing search...")
+                msg=f"You can pass. Traffic light is at {traffic_light_location}."
             )
 
             return {
-                "object_found": False,
+                "decision": "pass",
+                "stop_search": True,
+                "traffic_light_location": traffic_light_location
+            }
+        else:
+
+            # send message to user
+            self.callback.send_answer(
+                agent_id=self.workflow_instance_id,
+                msg=f"You should wait. {content.get('reason', 'Traffic light not found, continuing search...')}"
+            )
+
+            return {
+                "decision": "wait",
                 "stop_search": False,
-                "feedback": content.get("reason", "Object not found, continuing search...")
+                "reason": content.get("reason", "Traffic light not found, continuing search...")
             }
 
     def _extract_from_result(self, result: str) -> dict:

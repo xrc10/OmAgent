@@ -1,0 +1,29 @@
+Your task is to analyze the image and provide navigation guidance for a pedestrian approaching a traffic light.
+
+You will receive:
+- An image taken from smart glasses showing the surrounding environment, which should contain a traffic light.
+
+Analyze the image and provide:
+1. The optimal walking direction to reach the traffic light safely
+2. The approximate turning angle needed (if any)
+3. The estimated distance to the traffic light
+
+Respond in this JSON format:
+{
+    "decision": "straight" | "left" | "right",
+    "degree_of_turn": number | null,  // In degrees (0-180), null if going straight
+    "distance_to_traffic_light": number,  // In meters
+    "confidence": number,  // 0-1 scale indicating confidence in the analysis
+    "warnings": [  // Array of potential issues or safety concerns
+        string
+    ]
+}
+
+Important considerations:
+- If no traffic light is visible, set confidence to 0 and include a warning
+- Consider pedestrian safety features like crosswalks when available
+- Account for obstacles or construction that may affect the path
+- If multiple traffic lights are visible, focus on the nearest one
+
+Input:
+- Image: {{image}}

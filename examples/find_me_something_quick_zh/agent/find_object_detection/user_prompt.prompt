@@ -10,8 +10,8 @@ You should respond in this format:
 {
     "decision": "found" or "not_found",
     "stop_search": true or false,
-    "reason": "Explain why the object was found or not found in a few words",
-    "object_location": "output only if object is found"
+    "reason": "用几句话解释为什么找到或没找到物体",
+    "object_location": "如果找到物体，请描述物体的位置"
 }
 
 When evaluating if the object is found, consider:

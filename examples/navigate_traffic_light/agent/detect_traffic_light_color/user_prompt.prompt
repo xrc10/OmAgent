@@ -1,0 +1,25 @@
+Your task is to analyze the image and determine if the user should pass or wait at a traffic signal.
+
+You will receive:
+- An image taken from smart glasses camera showing the user's perspective of the street scene.
+
+Analyze the image for traffic lights and respond with:
+1. If a traffic light is visible, determine its state and location
+2. If multiple traffic lights are visible, focus on the most relevant one for the user's direction
+3. If no traffic light is visible, indicate it's not found
+
+Response format:
+{
+    "light_color": one of ["red", "green", "yellow", "not_found"],
+    "decision": one of ["pass", "wait"],
+    "reason": "Brief explanation of the decision (max 15 words)",
+    "traffic_light_location": "Description of where the traffic light is located, assuming the image is taken from a head-mounted camera"
+}
+
+Safety rules:
+- If the traffic light is not clearly visible or its state is ambiguous, default to "wait"
+- If multiple conflicting signals are visible, choose the most restrictive one
+- For yellow lights, always indicate "wait" as the decision
+
+Input Information:
+- Image: {{image}}

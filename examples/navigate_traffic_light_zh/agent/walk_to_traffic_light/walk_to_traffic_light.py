@@ -17,10 +17,10 @@ CURRENT_PATH = root_path = Path(__file__).parents[0]
 
 
 @registry.register_worker()
-class FindObjectDetection(BaseLLMBackend, BaseWorker):
-    """Object detection processor that determines if the requested object is found in the image.
+class WalkToTrafficLight(BaseLLMBackend, BaseWorker):
+    """Object detection processor that determines if the user is walking towards the traffic light.
     
-    This processor evaluates whether the requested object exists in the provided image
+    This processor evaluates whether the user is walking towards the traffic light
     by analyzing user instructions and image analysis results. It uses an LLM to
     make this determination.
     
@@ -39,7 +39,7 @@ class FindObjectDetection(BaseLLMBackend, BaseWorker):
     )
 
     def _run(self, *args, **kwargs):
-        """Process the current state to determine if the requested object is found.
+        """Process the current state to determine if the user is walking towards the traffic light.
         
         Args:
             args: Variable length argument list
@@ -47,30 +47,15 @@ class FindObjectDetection(BaseLLMBackend, BaseWorker):
             
         Returns:
             dict: Contains:
-                - 'object_found': True if object is found, False otherwise
-                - 'stop_search': True if user wants to stop searching
-                - 'feedback': Additional information about the search result
+                - 'decision': "straight", "left", or "right"
+                - 'degree_of_turn': the degree of turn to the traffic light
+                - 'distance_to_traffic_light': the distance to the traffic light
         """
-        # Retrieve context data from short-term memory, using empty lists as defaults
-        if self.stm(self.workflow_instance_id).get("user_instruction"):   
-            user_instruct = self.stm(self.workflow_instance_id).get("user_instruction")
-        else:
-            user_instruct = []
-        
-        if self.stm(self.workflow_instance_id).get("search_info"):
-            search_info = self.stm(self.workflow_instance_id).get("search_info")
-        else:
-            search_info = []
 
         logging.info(self.prompts)
-        logging.info(user_instruct)
         # Query LLM to analyze available information
         chat_complete_res = self.simple_infer(
-            instruction=str(user_instruct),
-            # previous_search=str(search_info),
             image='<image_0>',
-            temperature=1.0,
-            top_p=0.95,
         )
         logging.info(chat_complete_res)
         content = chat_complete_res["choices"][0]["message"].get("content")
@@ -78,36 +63,56 @@ class FindObjectDetection(BaseLLMBackend, BaseWorker):
         content = self._extract_from_result(content)
 
         if isinstance(content, str):
-            content = {"decision": "not_found", "stop_search": False, "reason": "Return is not valid JSON."}
-
-        # Return decision and handle feedback if more information is needed
-        if content.get("decision") == "found":
-            object_description = content.get("object description")
-            self.stm(self.workflow_instance_id)['object_description'] = object_description
-
-            object_location = content.get("object_location")
-            self.stm(self.workflow_instance_id)['object_location'] = object_location
-
-            return {
-                "object_found": True,
-                "stop_search": True,
-                "feedback": content.get("reason", "Object found!"),
-            }
-        else:
-            # update search info
-            search_info.append(content.get("reason", "Object found!"))
-            self.stm(self.workflow_instance_id)['search_info'] = search_info
-
-            # Send feedback via callback and return
+            # message to user
             self.callback.send_answer(
                 agent_id=self.workflow_instance_id,
-                msg=content.get("reason", "Object not found, continuing search...")
+                msg=f"Continue to walk straight."
+            )
+            content = {"decision": "not_found", "reason": "Return is not valid JSON."}
+            return {
+                "decision": "not_found",
+                "degree_of_turn": 0,
+                "distance_to_traffic_light": 0,
+                "stop_search": False
+            }
+
+        # Return decision and handle feedback if more information is needed
+        if content.get("decision") == "straight":
+            # message to user
+            self.callback.send_answer(
+                agent_id=self.workflow_instance_id,
+                msg=f"继续走，还有 {content.get('distance_to_traffic_light')} 米到交通信号灯。"
+            )
+            return {
+                "decision": "straight",
+                "degree_of_turn": 0,
+                "distance_to_traffic_light": 0,
+                "stop_search": False
+            }
+        elif content.get("decision") == "left" or content.get("decision") == "right":
+            # message to user
+            self.callback.send_answer(
+                agent_id=self.workflow_instance_id,
+                msg=f"向 {content.get('decision')} 方向转 {content.get('degree_of_turn')} 度，还有 {content.get('distance_to_traffic_light')} 米到交通信号灯。"
             )
 
             return {
-                "object_found": False,
-                "stop_search": False,
-                "feedback": content.get("reason", "Object not found, continuing search...")
+                "decision": content.get('decision'),
+                "degree_of_turn": content.get('degree_of_turn'),
+                "distance_to_traffic_light": content.get('distance_to_traffic_light'),
+                "stop_search": False
+            }
+        else: # no traffic light
+            # message to user
+            self.callback.send_answer(
+                agent_id=self.workflow_instance_id,
+                msg=f"没有找到交通信号灯。"
+            )
+            return {
+                "decision": "not_found",
+                "degree_of_turn": 0,
+                "distance_to_traffic_light": 0,
+                "stop_search": True
             }
 
     def _extract_from_result(self, result: str) -> dict:

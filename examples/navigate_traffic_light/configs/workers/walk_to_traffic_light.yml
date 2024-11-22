@@ -1,0 +1,2 @@
+name: WalkToTrafficLight
+llm: ${sub| internvl2}

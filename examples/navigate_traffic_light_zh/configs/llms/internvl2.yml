@@ -1,0 +1,6 @@
+name: OpenaiGPTLLM
+model_id: InternVL2-26B
+api_key: YOUR_API_KEY
+endpoint: http://10.8.25.20:8082/v1
+temperature: 0
+vision: true

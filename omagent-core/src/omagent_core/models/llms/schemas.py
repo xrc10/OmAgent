@@ -156,12 +156,12 @@ class Message(BaseModel):
                 modified_content = []
                 for segment in segments:
                     if segment in image_patterns:
-                        modified_content.append(
-                            Content(
-                                type="text",
-                                text=f"Image of {re.match(r'<image_([^_]+)>', segment).group(1)}",
-                            )
-                        )
+                        # modified_content.append(
+                        #     Content(
+                        #         type="text",
+                        #         text=f"Image of {re.match(r'<image_([^_]+)>', segment).group(1)}",
+                        #     )
+                        # )
                         modified_content.append(
                             Content(
                                 type="image_url",
