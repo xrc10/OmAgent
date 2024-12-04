@@ -68,6 +68,17 @@ docker-compose -f docker/conductor/docker-compose.yml up -d
 - **Install Optional Components**: 
   - Install Milvus VectorDB for enhanced support of long-term memory.
 OmAgent uses Milvus Lite as the default vector database for storing vector data related to long-term memory. To utilize the full Milvus service, you may deploy the [Milvus vector database](https://milvus.io/docs/install_standalone-docker.md) via Docker.
+  - Pull git lfs files.
+We provide sample image files for our examples in the `examples/step4_outfit_with_ltm/wardrobe_images` directory. To use them, ensure Git LFS is installed. You can install it with the following command:
+      ```bash
+      git lfs install
+      ```
+      Then, pull the files by executing:
+      ```bash
+      git lfs pull
+      ```
+  
+
 
 ### 3. Connect Devices  
 If you wish to use smart devices to access your agents, we provide a smartphone app and corresponding backend, allowing you to focus on agent functionality without worrying about complex device connection issues.  
@@ -75,6 +86,7 @@ If you wish to use smart devices to access your agents, we provide a smartphone 
     The APP backend comprises the backend program, along with two middleware components: the MySQL database and MinIO object storage. For installation and deployment instructions, please refer to [this link](docs/concepts/app_backend.md).
 - **Download, install, and debug the smartphone app**  
   At present, we offer an Android APP available for download and testing. For detailed instructions on acquiring and using it, please refer to [here](docs/concepts/app.md). The iOS version is currently under development and will be available soon.
+
 
 ## 🚀 Quick Start 
 ### Hello World
@@ -171,7 +183,7 @@ We provide exemplary projects to demonstrate the construction of intelligent age
 
 4. [step4_outfit_with_ltm](./examples/step4_outfit_with_ltm) exemplifies using OmAgent to create an agent equipped with long-term memory. Detailed tutorial can be found [here](docs/examples/outfit_with_ltm.md).
 
-5. [dnc_loop](./examples/general_dnc) demonstrates the development of an agent utilizing the DnC algorithm to tackle complex problems. Detailed tutorial can be found [here](docs/examples/dnc_loop.md).
+5. [dnc_loop](./examples/general_dnc) demonstrates the development of an agent utilizing the DnC algorithm to tackle complex problems. Detailed tutorial can be found [here](docs/examples/DnC.md).
 
 6. [video_understanding](./examples/video_understanding) showcases the creation of a video understanding agent for interpreting video content using OmAgent. Detailed tutorial can be found [here](docs/examples/video_understanding.md).
 
@@ -198,6 +210,16 @@ If you find our repository beneficial, please cite our paper:
   year={2024}
 }
 ```
+
+## Third-Party Dependencies
+
+This project includes code from the following third-party projects:
+
+- **conductor-python**  
+  - License: Apache License 2.0
+  - [Link to Project](https://github.com/conductor-sdk/conductor-python)
+  - [Link to License](http://www.apache.org/licenses/LICENSE-2.0)
+
 
 ## Star History
 [![Star History Chart](https://api.star-history.com/svg?repos=om-ai-lab/OmAgent&type=Date)](https://star-history.com/#om-ai-lab/OmAgent&Date)
