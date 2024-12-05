@@ -47,7 +47,7 @@ services:
       - xpack.security.enabled=false
       - discovery.type=single-node
     volumes:
-      - esdata-conductor:/usr/share/elasticsearch/data
+      - esdata-conductor1:/usr/share/elasticsearch/data
     networks:
       - internal
     ports:
@@ -64,7 +64,7 @@ services:
         max-file: "3"
 
 volumes:
-  esdata-conductor:
+  esdata-conductor1:
     driver: local
 
 networks:
