@@ -4,7 +4,7 @@ from typing import List
 from omagent_core.models.llms.base import BaseLLMBackend
 from omagent_core.utils.registry import registry
 from omagent_core.models.llms.schemas import Message, Content
-from omagent_core.utils.general import encode_image
+from omagent_core.utils.general import encode_image, read_image
 from omagent_core.models.llms.prompt.parser import StrParser
 from omagent_core.models.llms.openai_gpt import OpenaiGPTLLM
 from omagent_core.engine.worker.base import BaseWorker
@@ -27,7 +27,7 @@ class MultimodalLLMSampler(BaseWorker, BaseLLMBackend):
         # input_data = kwargs['workflow_input']
         print(data)
         input_data = data
-        img = input_data['image']
+        img = read_image(input_source=input_data['image'])
         user_instruction = input_data['conversations'][0]['value'].replace('<image>', '')
 
         # Initialize empty list for chat messages
