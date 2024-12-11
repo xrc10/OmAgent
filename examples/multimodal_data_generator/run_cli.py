@@ -70,11 +70,14 @@ def main():
         data = json.loads(line)
         if data['id'] in existing_ids:
             continue
-        data['id'] = str(i)
+        if 'id' not in data:
+            data['id'] = str(i)
         data['image'] = os.path.join(args.image_folder, data['image'])
         cli_client.start_interactor_with_input(workflow_input={'data': data})
 
         break
+
+    cli_client.stop_interactor_when_done()
 
 if __name__ == "__main__":
     main()

@@ -183,7 +183,10 @@ class DefaultClient:
             sleep(1)
         self.stop_processor()
         
-
+    def stop_interactor_when_done(self):
+        while workflow_client.search(query=f"workflowType IN ({self._interactor.name}) AND status IN (RUNNING)").results:
+            sleep(1)
+        self.stop_interactor()
 
     def stop_processor(self):
         self._task_handler_processor.stop_processes()

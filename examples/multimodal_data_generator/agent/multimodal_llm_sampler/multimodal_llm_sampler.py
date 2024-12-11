@@ -45,7 +45,17 @@ class MultimodalLLMSampler(BaseWorker, BaseLLMBackend):
                                 )]))
         
         # Get response from LLM model
-        chat_complete_res = self.llm.generate(records=chat_message)
+        # chat_complete_res = self.llm.generate(records=chat_message)
+
+        chat_complete_res = {
+            "choices": [
+                {
+                    "message": {
+                        "content": "This is a test answer."
+                    }
+                }
+            ]
+        }
 
         # Extract answer text from response
         answer = chat_complete_res["choices"][0]["message"]["content"]

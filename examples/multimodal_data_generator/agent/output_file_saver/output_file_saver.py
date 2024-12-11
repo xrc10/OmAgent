@@ -19,5 +19,7 @@ class OutputFileSaver(BaseWorker):
         
         with open(output_file, 'a') as f_out:
             f_out.write(json.dumps(data) + '\n')
+            f_out.flush() # TODO: why I have to use flush?
 
         return None
+
