@@ -1,0 +1,3 @@
+name: StoryEnding
+llm: ${sub| gpt}
+system_prompt: ${file| agent/story_ending/sys_prompt.prompt} 

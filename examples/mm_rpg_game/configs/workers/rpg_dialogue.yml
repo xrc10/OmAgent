@@ -1,0 +1,3 @@
+name: RPGDialogue
+llm: ${sub| gpt}
+system_prompt: ${file| agent/rpg_dialogue/sys_prompt.prompt} 

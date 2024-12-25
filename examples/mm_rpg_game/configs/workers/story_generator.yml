@@ -1,0 +1,3 @@
+name: StoryGenerator
+llm: ${sub| gpt}
+system_prompt: ${file| agent/story_generator/sys_prompt.prompt} 
