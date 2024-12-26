@@ -1,0 +1,3 @@
+name: StorySummarizer
+llm: ${sub| gpt}
+system_prompt: ${file| agent/story_summarizer/sys_prompt.prompt} 

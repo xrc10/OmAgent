@@ -43,18 +43,21 @@ task3 = simple_task(task_def_name="RPGDialogue", task_reference_name="rpg_dialog
 # 4. Check story progress
 task4 = simple_task(task_def_name="StoryProgress", task_reference_name="story_progress")
 
-# 5. Generate story ending
-task5 = simple_task(task_def_name="StoryEnding", task_reference_name="story_ending")
+# 5. Summarize story progress
+task5 = simple_task(task_def_name="StorySummarizer", task_reference_name="story_summarizer")
+
+# 6. Generate story ending
+task6 = simple_task(task_def_name="StoryEnding", task_reference_name="story_ending")
 
 # Create dialogue loop that continues until story is complete or max turns reached
 dialogue_loop = DoWhileTask(
     task_ref_name="dialogue_loop",
-    tasks=[task3, task4],
+    tasks=[task3, task5, task4],
     termination_condition='if ($.story_progress["should_end"] == true){false;} else {true;} ',
 )
 
 # Define workflow sequence
-workflow >> task1 >> task2 >> dialogue_loop >> task5
+workflow >> task1 >> task2 >> dialogue_loop >> task6
 
 # Register workflow
 workflow.register(True)
