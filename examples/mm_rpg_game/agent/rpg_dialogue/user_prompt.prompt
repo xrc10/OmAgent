@@ -1,0 +1,12 @@
+故事类型：{{story_type}}
+故事背景：{{background}}
+
+当前进展：
+{{story_progress}}
+
+当前回合：{{current_turn}}/{{max_turns}}
+
+玩家行动：
+{{user_action}}
+
+请根据以上信息继续推进故事，提供生动的描述和新的选择机会。记住要保持故事的连贯性，并根据剩余回合数调整节奏。

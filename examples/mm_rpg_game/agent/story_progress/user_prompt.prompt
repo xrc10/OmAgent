@@ -1,0 +1,9 @@
+请评估以下故事进展情况：
+
+故事类型：{{story_type}}
+故事背景：{{background}}
+故事进展：{{story_progress}}
+当前回合：{{current_turn}}
+最大回合数：{{max_turns}}
+
+根据以上信息，请评估故事是否应该结束。

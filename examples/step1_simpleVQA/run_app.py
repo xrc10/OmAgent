@@ -25,7 +25,7 @@ container.from_config(CURRENT_PATH.joinpath("container.yaml"))
 
 
 # Initialize simple VQA workflow
-workflow = ConductorWorkflow(name="step1_simpleVQA")
+workflow = ConductorWorkflow(name="step1_simpleVQA_xu_ruochen")
 
 # Configure workflow tasks:
 # 1. Input interface for user interaction

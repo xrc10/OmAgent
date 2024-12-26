@@ -1,9 +1,15 @@
 import random
 from pathlib import Path
+from typing import List
 
 from omagent_core.engine.worker.base import BaseWorker
-from omagent_core.engine.worker.llm.base import BaseLLMBackend
+from omagent_core.models.llms.base import BaseLLMBackend
+from omagent_core.models.llms.openai_gpt import OpenaiGPTLLM
+from omagent_core.models.llms.prompt.parser import StrParser
+from omagent_core.models.llms.prompt.prompt import PromptTemplate
 from omagent_core.utils.registry import registry
+from pydantic import Field
+
 
 CURRENT_PATH = Path(__file__).parents[0]
 
@@ -11,14 +17,22 @@ CURRENT_PATH = Path(__file__).parents[0]
 class StoryGenerator(BaseLLMBackend, BaseWorker):
     """Worker for generating the initial story and goals based on the input image."""
     
-    def __init__(self):
-        super().__init__()
-        self.name = "StoryGenerator"
+    llm: OpenaiGPTLLM
+    prompts: List[PromptTemplate] = Field(
+        default=[
+            PromptTemplate.from_file(
+                CURRENT_PATH.joinpath("sys_prompt.prompt"), role="system"
+            ),
+            PromptTemplate.from_file(
+                CURRENT_PATH.joinpath("user_prompt.prompt"), role="user"
+            ),
+        ]
+    )
         
     def _run(self, *args, **kwargs):
         """Generate story background and goals based on the image."""
         # Get stored image
-        image = self.stm(self.workflow_instance_id)["image"]
+        image = self.stm(self.workflow_instance_id)["image_cache"]["<image_0>"]
         
         # Define possible story types
         story_types = [
@@ -31,8 +45,8 @@ class StoryGenerator(BaseLLMBackend, BaseWorker):
         
         # Generate story using LLM
         chat_complete_res = self.simple_infer(
+            story_type=story_type,
             image=image,
-            story_type=story_type
         )
         
         content = chat_complete_res["choices"][0]["message"].get("content")
@@ -54,4 +68,4 @@ class StoryGenerator(BaseLLMBackend, BaseWorker):
             msg=f"故事背景：\n\n{content}\n\n你现在可以开始你的冒险了！请告诉我你想做什么？"
         )
         
-        return story_context 
+        return story_context

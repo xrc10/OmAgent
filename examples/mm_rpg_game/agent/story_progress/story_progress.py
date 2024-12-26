@@ -1,8 +1,13 @@
 from pathlib import Path
+from typing import List
 
 from omagent_core.engine.worker.base import BaseWorker
-from omagent_core.engine.worker.llm.base import BaseLLMBackend
+from omagent_core.models.llms.base import BaseLLMBackend
+from omagent_core.models.llms.openai_gpt import OpenaiGPTLLM
 from omagent_core.utils.registry import registry
+from omagent_core.models.llms.prompt.parser import StrParser
+from omagent_core.models.llms.prompt.prompt import PromptTemplate
+from pydantic import Field
 
 CURRENT_PATH = Path(__file__).parents[0]
 
@@ -10,9 +15,17 @@ CURRENT_PATH = Path(__file__).parents[0]
 class StoryProgress(BaseLLMBackend, BaseWorker):
     """Worker for checking story progress and determining if it should end."""
     
-    def __init__(self):
-        super().__init__()
-        self.name = "StoryProgress"
+    llm: OpenaiGPTLLM
+    prompts: List[PromptTemplate] = Field(
+        default=[
+            PromptTemplate.from_file(
+                CURRENT_PATH.joinpath("sys_prompt.prompt"), role="system"
+            ),
+            PromptTemplate.from_file(
+                CURRENT_PATH.joinpath("user_prompt.prompt"), role="user"
+            ),
+        ]
+    )
         
     def _run(self, *args, **kwargs):
         """Check if the story should end based on progress and turns."""

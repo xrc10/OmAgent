@@ -9,10 +9,6 @@ CURRENT_PATH = Path(__file__).parents[0]
 @registry.register_worker()
 class RPGImageInput(BaseWorker):
     """Worker for handling image input in the RPG game."""
-    
-    def __init__(self):
-        super().__init__()
-        self.name = "RPGImageInput"
         
     def _run(self, *args, **kwargs):
         """Process the image input and store it for story generation."""
@@ -28,7 +24,7 @@ class RPGImageInput(BaseWorker):
         
         # Find image in content
         for content_item in content:
-            if content_item["type"] == "image":
+            if content_item["type"] in ["image", "image_url"]:
                 image_path = content_item["data"]
                 break
         
@@ -36,7 +32,9 @@ class RPGImageInput(BaseWorker):
             raise ValueError("未能找到上传的图片")
             
         # Read and store image
-        image = read_image(image_path)
-        self.stm(self.workflow_instance_id)["image"] = image
+        image = read_image(input_source=image_path)
+        # Store image in workflow shared memory with standard key
+        image_cache = {"<image_0>": image}
+        self.stm(self.workflow_instance_id)["image_cache"] = image_cache
         
-        return {"image": image} 
+        return {"image_path": image_path} 
