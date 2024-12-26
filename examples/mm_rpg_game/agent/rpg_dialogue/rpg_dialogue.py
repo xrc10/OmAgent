@@ -6,7 +6,9 @@ from omagent_core.models.llms.base import BaseLLMBackend
 from omagent_core.models.llms.openai_gpt import OpenaiGPTLLM
 from omagent_core.models.llms.prompt.parser import StrParser
 from omagent_core.models.llms.prompt.prompt import PromptTemplate
+from omagent_core.utils.general import read_image
 from omagent_core.utils.registry import registry
+
 from pydantic import Field
 
 CURRENT_PATH = Path(__file__).parents[0]
@@ -45,6 +47,14 @@ class RPGDialogue(BaseLLMBackend, BaseWorker):
             if content_item["type"] == "text":
                 user_action = content_item["data"]
                 break
+
+        # Find image in content
+        for content_item in content:
+            if content_item["type"] in ["image", "image_url"]:
+                image_path = content_item["data"]
+                break
+        # Read and store image
+        image = read_image(input_source=image_path)
         
         # Update turn counter
         story_context["current_turn"] += 1
@@ -56,7 +66,8 @@ class RPGDialogue(BaseLLMBackend, BaseWorker):
             story_progress=story_context["story_progress"],
             current_turn=story_context["current_turn"],
             max_turns=story_context["max_turns"],
-            user_action=user_action
+            user_action=user_action,
+            image=image
         )
         
         response = chat_complete_res["choices"][0]["message"].get("content")
