@@ -24,7 +24,7 @@ container.from_config(CURRENT_PATH.joinpath("container.yaml"))
 
 
 # Initialize simple VQA workflow
-workflow = ConductorWorkflow(name="VQA_with_mem0_v2")
+workflow = ConductorWorkflow(name="VQA_with_mem0")
 
 # Configure workflow tasks
 task1 = simple_task(task_def_name="InputInterface", task_reference_name="input_task_vqa_mem0")

@@ -36,7 +36,7 @@ connectors:
       value: null
       env_var: USERNAME
     db:
-      value: 0
+      value: 20
       env_var: DB
   redis_stm_client:
     name: RedisConnector

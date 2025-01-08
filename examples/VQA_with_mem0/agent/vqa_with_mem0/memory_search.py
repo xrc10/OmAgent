@@ -9,6 +9,19 @@ MEMORY_SEARCH_PROMPT = """You are an AI assistant that helps with visual questio
 
 For the given user query, you should decide if searching memory would be helpful.
 
+You should search memory when:
+1. User asks about past events or interactions
+2. User refers to previous conversations
+3. User asks about things they did before
+4. User asks "what did I..." type questions
+5. Questions about history or past purchases
+
+Examples:
+- "What did I buy today?" -> SEARCH: YES
+- "What is in this image?" -> SEARCH: NO
+- "Did I talk about this before?" -> SEARCH: YES
+- "Can you describe this picture?" -> SEARCH: NO
+
 Format your response as:
 SEARCH_MEMORY: YES/NO
 SEARCH_QUERY: <query if searching>"""
@@ -63,6 +76,6 @@ class VQAMemorySearch(BaseWorker, BaseLLMBackend):
             "search_query": search_query
         }
 
-        self.callback.send_answer(self.workflow_instance_id, msg=f"Memory search needed: {search_memory}\nSearch query: {search_query}")
+        # self.callback.send_answer(self.workflow_instance_id, msg=f"Memory search needed: {search_memory}\nSearch query: {search_query}")
 
         return {"search_needed": search_memory, "search_query": search_query} 

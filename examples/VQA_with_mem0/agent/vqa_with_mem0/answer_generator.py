@@ -11,6 +11,30 @@ ANSWER_AND_STORE_PROMPT = """You are an AI assistant that helps with visual ques
 Use the provided image and any retrieved memories (if available) to answer the user's question.
 After answering, decide if the current interaction should be stored in memory.
 
+Store memories that contain:
+- Factual information about objects or scenes in the image
+- Important relationships or context that might be useful later
+- Unique or distinctive features worth remembering
+
+Don't store memories that are:
+- Simple yes/no answers
+- Subjective opinions
+- Redundant information already stored
+- Generic observations that wouldn't help future interactions
+
+Examples:
+Q: "Is this a cat?"
+A: "Yes, this is a cat."
+Store: NO (simple yes/no answer)
+
+Q: "What's in this kitchen?"
+A: "The kitchen has white cabinets, a marble countertop, and stainless steel appliances including a double-door refrigerator."
+Store: YES (detailed description that could be relevant for future questions)
+
+Q: "Do you like how this room is decorated?"
+A: "The room has a modern and appealing design."
+Store: NO (subjective opinion)
+
 Format your response as:
 ANSWER: <your answer to the user>
 STORE_MEMORY: YES/NO
@@ -59,7 +83,7 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
         if search_memory and search_query:
             relevant_memories = self.memory_manager.search_memory(search_query)
             if relevant_memories:
-                self.callback.send_answer(self.workflow_instance_id, msg=f"Relevant memories found: {relevant_memories[0]}")
+                # self.callback.send_answer(self.workflow_instance_id, msg=f"Relevant memories found: {relevant_memories[0]}")
                 answer_messages.append(
                     Message(
                         role="system",
@@ -92,8 +116,8 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
                 memory_content,
                 metadata={"type": "vqa_interaction"}
             )
-            self.callback.send_answer(self.workflow_instance_id, msg=f"Memory stored: {memory_content}")
-        self.callback.send_answer(self.workflow_instance_id, msg=f"Answer: {answer}")
+            # self.callback.send_answer(self.workflow_instance_id, msg=f"Memory stored: {memory_content}")
+        self.callback.send_answer(self.workflow_instance_id, msg=f"{answer}")
 
         return {
             "answer": answer,

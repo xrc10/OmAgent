@@ -23,7 +23,7 @@ class InputInterface(BaseWorker):
         # Read user input through configured input interface
         user_input = self.input.read_input(
             workflow_instance_id=self.workflow_instance_id,
-            input_prompt="Please tell me a question and a image.",
+            input_prompt="",
         )
 
         image_path = None
