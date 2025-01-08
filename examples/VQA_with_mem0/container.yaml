@@ -17,7 +17,7 @@ conductor_config:
     description: The authorization token refresh interval in minutes.
     env_var: AUTH_TOKEN_TTL_MIN
   debug:
-    value: true
+    value: false
     description: Debug mode
     env_var: DEBUG
 connectors:
