@@ -102,7 +102,7 @@ linker:
       buckets:
         - name: omai
           auth: false
-          urlPrefix: http://<Your ip>:9000/omai
+          urlPrefix: http://10.8.25.20:9000/omai
     select: minio
 
 agent:

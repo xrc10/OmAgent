@@ -155,3 +155,6 @@ video_cache/
 
 # vscode
 .vscode
+
+# Docker
+docker/
