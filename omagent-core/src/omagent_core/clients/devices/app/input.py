@@ -21,6 +21,10 @@ from omagent_core.utils.registry import registry
 class AppInput(InputBase):
     redis_stream_client: RedisConnector
 
+    def read_first_input(self, workflow_instance_id: str):
+        workflow = workflow_client.get_workflow(workflow_instance_id)
+        return json.loads(workflow.input["input"])
+
     def read_input(self, workflow_instance_id: str, input_prompt=""):
         stream_name = f"{workflow_instance_id}_input"
         group_name = "omappagent"  # consumer group name
