@@ -51,9 +51,9 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
         self.memory_manager = MemoryManager()
 
     def _run(self, user_instruction: str, *args, **kwargs):
-        memory_search_results = self.stm(self.workflow_instance_id).get("memory_search", {})
-        search_memory = memory_search_results.get("search_needed", False)
-        search_query = memory_search_results.get("search_query")
+        # Get memory search results from previous step
+        memory_search_results = self.stm(self.workflow_instance_id).get("memory_search_results", {})
+        relevant_memories = memory_search_results.get("relevant_memories", None)
 
         answer_messages = [
             Message(role="system", message_type="text", content=ANSWER_AND_STORE_PROMPT),
@@ -78,19 +78,15 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
                 )
             )
 
-        relevant_memories = None
-        # Search and add memories if needed
-        if search_memory and search_query:
-            relevant_memories = self.memory_manager.search_memory(search_query)
-            if relevant_memories:
-                # self.callback.send_answer(self.workflow_instance_id, msg=f"Relevant memories found: {relevant_memories[0]}")
-                answer_messages.append(
-                    Message(
-                        role="system",
-                        message_type="text",
-                        content=f"Relevant memories found: {relevant_memories}"
-                    )
+        # Add relevant memories if available
+        if relevant_memories:
+            answer_messages.append(
+                Message(
+                    role="system",
+                    message_type="text",
+                    content=f"Relevant memories found: {relevant_memories}"
                 )
+            )
 
         # Generate final answer
         response = self.llm.generate(records=answer_messages)
@@ -110,14 +106,14 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
             elif line.startswith('MEMORY_CONTENT:'):
                 memory_content = line.split(':', 1)[1].strip()
 
+        self.callback.send_answer(self.workflow_instance_id, msg=f"{answer}")
+
         # Store memory if needed
         if store_memory and memory_content:
             self.memory_manager.add_memory(
                 memory_content,
                 metadata={"type": "vqa_interaction"}
             )
-            # self.callback.send_answer(self.workflow_instance_id, msg=f"Memory stored: {memory_content}")
-        self.callback.send_answer(self.workflow_instance_id, msg=f"{answer}")
 
         return {
             "answer": answer,
