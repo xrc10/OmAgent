@@ -9,18 +9,21 @@ from .memory_manager import MemoryManager
 @registry.register_worker()
 class MemorySearch(BaseWorker):
     """Memory search worker"""
-
-    llm: OpenaiGPTLLM
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.memory_manager = MemoryManager()
 
     def _run(self, user_instruction: str, *args, **kwargs):
+        user_id = self.stm(self.workflow_instance_id).get("user_id", "default_user")
+        self.memory_manager = MemoryManager(user_id=user_id)
+
         memory_search_query = self.stm(self.workflow_instance_id).get("memory_search_query", None)
 
         # Directly use the user instruction as the search query
         relevant_memories = self.memory_manager.search_memory(memory_search_query)
+        
+        # Keep only the top 5 memories
+        relevant_memories = relevant_memories[:5]
         
         # Store results in STM for next step
         self.stm(self.workflow_instance_id)["memory_search_results"] = {

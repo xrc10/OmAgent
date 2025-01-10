@@ -21,14 +21,24 @@ class InputInterface(BaseWorker):
 
     def _run(self, *args, **kwargs):
         # Read user input through configured input interface
-        user_input = self.input.read_input(
+        # user_input = self.input.read_input(
+        #     workflow_instance_id=self.workflow_instance_id,
+        #     input_prompt="Please provide your question and image."
+        # )
+
+        user_input = self.input.read_first_input(
             workflow_instance_id=self.workflow_instance_id,
-            input_prompt=None,
         )
 
-        # user_input = self.input.read_first_input(
-        #     workflow_instance_id=self.workflow_instance_id,
-        # )
+        # Extract user_id from kwargs if present
+        user_id = None
+        if "kwargs" in user_input:
+            for kwarg in user_input["kwargs"]:
+                if kwarg["key"] == "userId":
+                    user_id = kwarg["value"]
+                    # Store user_id in shared memory
+                    self.stm(self.workflow_instance_id)["user_id"] = user_id
+                    break
 
         image_path = None
         # Extract text and image content from input message
@@ -50,4 +60,4 @@ class InputInterface(BaseWorker):
             image_cache = {"<image_0>": img}
             self.stm(self.workflow_instance_id)["image_cache"] = image_cache
 
-        return {"user_instruction": user_instruction}
+        return {"user_instruction": user_instruction, "user_id": user_id}

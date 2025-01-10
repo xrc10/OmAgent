@@ -26,7 +26,7 @@ container.from_config(CURRENT_PATH.joinpath("container.yaml"))
 
 
 # Initialize workflow with new structure
-workflow = ConductorWorkflow(name="VQA_with_mem0")
+workflow = ConductorWorkflow(name="VQA_with_mem0_v2")
 
 # Configure workflow tasks
 task1 = simple_task(
@@ -46,17 +46,39 @@ task3 = simple_task(
     inputs={"user_instruction": task1.output("user_instruction")},
 )
 
-task4 = simple_task(
+# Split memory search into two tasks
+task4_0 = simple_task(
     task_def_name="MemorySearch",
-    task_reference_name="memory_search",
+    task_reference_name="memory_search0",
     inputs={
         "user_instruction": task1.output("user_instruction"),
     },
 )
 
-task5 = simple_task(
+task4_1 = simple_task(
+    task_def_name="MemorySearch",
+    task_reference_name="memory_search1",
+    inputs={
+        "user_instruction": task1.output("user_instruction"),
+    },
+)
+
+# Split answer generator into three tasks
+task5_0 = simple_task(
     task_def_name="VQAAnswerGenerator",
-    task_reference_name="answer_generator",
+    task_reference_name="answer_generator0",
+    inputs={"user_instruction": task1.output("user_instruction")},
+)
+
+task5_1 = simple_task(
+    task_def_name="VQAAnswerGenerator",
+    task_reference_name="answer_generator1",
+    inputs={"user_instruction": task1.output("user_instruction")},
+)
+
+task5_2 = simple_task(
+    task_def_name="VQAAnswerGenerator",
+    task_reference_name="answer_generator2",
     inputs={"user_instruction": task1.output("user_instruction")},
 )
 
@@ -65,27 +87,20 @@ task6 = simple_task(
     task_reference_name="output_formatter"
 )
 
-# Configure workflow with switch task
-workflow >> task1 >> task2
-
 # Create switch task for routing based on memory_decision output
 switch_task = SwitchTask(
     task_ref_name="memory_decision_switch",
     case_expression=task2.output("final_decision")
 )
 
-# Add switch cases
-switch_task.switch_case("multimodal_query_generator", task3)  # When we need to generate a multimodal query
-switch_task.switch_case("memory_search", task4)  # When we need to search memory with text-only query
-switch_task.switch_case("answer_generator", task5)  # When we need to generate an answer without memory search
-switch_task.switch_case("output_formatter", task6)  # When we need to output the final answer
+# Add switch cases with task lists
+switch_task.switch_case("multimodal_query_generator", [task3, task4_0, task5_0])
+switch_task.switch_case("memory_search", [task4_1, task5_1])
+switch_task.switch_case("answer_generator", [task5_2])
+switch_task.switch_case("output_formatter", [task6])
 
-# Connect task2 to switch_task
-task2 >> switch_task
-
-# Connect remaining flow
-task3 >> task4  # Multimodal query generator to memory search
-task4 >> task5  # Memory search to answer generator
+# Connect workflow
+workflow >> task1 >> task2 >> switch_task
 
 # Register workflow
 workflow.register(True)
