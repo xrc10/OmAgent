@@ -4,6 +4,7 @@ from pathlib import Path
 from omagent_core.clients.devices.app.client import AppClient
 from omagent_core.engine.workflow.conductor_workflow import ConductorWorkflow
 from omagent_core.engine.workflow.task.simple_task import simple_task
+from omagent_core.engine.workflow.task.switch_task import SwitchTask
 from omagent_core.utils.container import container
 from omagent_core.utils.logger import logging
 from omagent_core.utils.registry import registry
@@ -24,24 +25,82 @@ container.register_stm("RedisSTM")
 container.from_config(CURRENT_PATH.joinpath("container.yaml"))
 
 
-# Initialize simple VQA workflow
-workflow = ConductorWorkflow(name="VQA_with_mem0")
+# Initialize workflow with new structure
+workflow = ConductorWorkflow(name="VQA_with_mem0_v2")
 
 # Configure workflow tasks
-task1 = simple_task(task_def_name="InputInterface", task_reference_name="input_task")
-task2 = simple_task(
-    task_def_name="VQAMemorySearch",
-    task_reference_name="memory_search",
-    inputs={"user_instruction": task1.output("user_instruction")},
+task1 = simple_task(
+    task_def_name="InputInterface", 
+    task_reference_name="input_task"
 )
-task3 = simple_task(
-    task_def_name="VQAAnswerGenerator",
-    task_reference_name="answer_generator",
+
+task2 = simple_task(
+    task_def_name="MemoryDecisionWorker",
+    task_reference_name="memory_decision",
     inputs={"user_instruction": task1.output("user_instruction")},
 )
 
-# Configure workflow execution flow: Input -> Memory Search -> Answer Generation
-workflow >> task1 >> task2 >> task3
+task3 = simple_task(
+    task_def_name="MultimodalQueryGenerator",
+    task_reference_name="multimodal_query",
+    inputs={"user_instruction": task1.output("user_instruction")},
+)
+
+# Split memory search into two tasks
+task4_0 = simple_task(
+    task_def_name="MemorySearch",
+    task_reference_name="memory_search0",
+    inputs={
+        "user_instruction": task1.output("user_instruction"),
+    },
+)
+
+task4_1 = simple_task(
+    task_def_name="MemorySearch",
+    task_reference_name="memory_search1",
+    inputs={
+        "user_instruction": task1.output("user_instruction"),
+    },
+)
+
+# Split answer generator into three tasks
+task5_0 = simple_task(
+    task_def_name="VQAAnswerGenerator",
+    task_reference_name="answer_generator0",
+    inputs={"user_instruction": task1.output("user_instruction")},
+)
+
+task5_1 = simple_task(
+    task_def_name="VQAAnswerGenerator",
+    task_reference_name="answer_generator1",
+    inputs={"user_instruction": task1.output("user_instruction")},
+)
+
+task5_2 = simple_task(
+    task_def_name="VQAAnswerGenerator",
+    task_reference_name="answer_generator2",
+    inputs={"user_instruction": task1.output("user_instruction")},
+)
+
+task6 = simple_task(
+    task_def_name="OutputFormatter",
+    task_reference_name="output_formatter"
+)
+
+# Create switch task for routing based on memory_decision output
+switch_task = SwitchTask(
+    task_ref_name="memory_decision_switch",
+    case_expression=task2.output("final_decision")
+)
+
+# Add switch cases with task lists
+switch_task.switch_case("multimodal_query_generator", [task3, task4_0, task5_0])
+switch_task.switch_case("memory_search", [task4_1, task5_1])
+switch_task.switch_case("answer_generator", [task5_2])
+switch_task.switch_case("output_formatter", [task6])
+
+# Connect workflow
+workflow >> task1 >> task2 >> switch_task
 
 # Register workflow
 workflow.register(True)

@@ -1,0 +1,2 @@
+name: MultimodalQueryGenerator
+llm: ${sub|gpt} 

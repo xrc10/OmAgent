@@ -28,6 +28,7 @@ class InputInterface(BaseWorker):
 
         user_input = self.input.read_first_input(
             workflow_instance_id=self.workflow_instance_id,
+            input_prompt="",
         )
 
         image_path = None
@@ -50,4 +51,4 @@ class InputInterface(BaseWorker):
             image_cache = {"<image_0>": img}
             self.stm(self.workflow_instance_id)["image_cache"] = image_cache
 
-        return {"user_instruction": user_instruction}
+        return {"user_instruction": user_instruction, "user_id": user_id}
