@@ -21,9 +21,15 @@ Memory should be used when:
 - Query might benefit from past context (even if not explicitly asked for)
 
 Memory should NOT be used when:
-- User is only trying to record new information ("help me remember", "记一下", etc.)
+- User is only trying to record new information ("help me remember", "记一下", "记住", etc.)
 - Making new notes or annotations
 - Setting new preferences or information
+
+Image is required for answer when:
+- Query needs to extract information from the current image
+- Query asks about visual details or content in the image
+- Query involves recording or remembering information from the image
+- Query asks to describe, analyze, or understand anything in the image
 
 Image is required for memory search when:
 - Query refers to a specific object ("this pen", "this book", etc.)
@@ -62,6 +68,12 @@ Examples:
 -> Image required for memory: N/A
 -> Image required for answer: Yes
 -> Reason: Need to describe the image without using past context
+
+"记住这个名片上的所有信息。" (Remember all information on this business card)
+-> Memory required: No
+-> Image required for memory: N/A
+-> Image required for answer: Yes
+-> Reason: Need to extract information from the business card image to record it
 
 Format your response as:
 MEMORY_REQUIRED: YES/NO
