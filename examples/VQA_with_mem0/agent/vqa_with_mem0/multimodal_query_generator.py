@@ -66,6 +66,10 @@ class MultimodalQueryGenerator(BaseWorker, BaseLLMBackend):
         # store the query in the STM if exists
         if search_query:
             self.stm(self.workflow_instance_id)["memory_search_query"] = search_query
+        else:
+            # use the user instruction as the query
+            search_query = user_instruction
+            self.stm(self.workflow_instance_id)["memory_search_query"] = search_query
 
         return {
             "memory_search_query": search_query,

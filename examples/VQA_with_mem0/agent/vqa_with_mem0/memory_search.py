@@ -23,6 +23,10 @@ class MemorySearch(BaseWorker):
 
         memory_search_query = self.stm(self.workflow_instance_id).get("memory_search_query", None)
 
+        # if no search query, use the user instruction as the search query
+        if not memory_search_query:
+            memory_search_query = user_instruction
+
         # Directly use the user instruction as the search query
         relevant_memories = self.memory_manager.search_memory(memory_search_query)
         
