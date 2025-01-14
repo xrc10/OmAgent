@@ -4,6 +4,7 @@ from omagent_core.models.llms.openai_gpt import OpenaiGPTLLM
 from omagent_core.models.llms.schemas import Content, Message
 from omagent_core.utils.registry import registry
 from omagent_core.utils.general import encode_image
+from time import time
 
 MULTIMODAL_QUERY_PROMPT = """You are an AI assistant that helps generate memory search queries based on both text and image input.
 
@@ -49,7 +50,10 @@ class MultimodalQueryGenerator(BaseWorker, BaseLLMBackend):
                 )
             )
 
+        # Time the LLM API call
+        start_time = time()
         response = self.llm.generate(records=query_messages)
+        llm_time = time() - start_time
         query_response = response["choices"][0]["message"]["content"]
 
         # Parse query
@@ -63,4 +67,7 @@ class MultimodalQueryGenerator(BaseWorker, BaseLLMBackend):
         if search_query:
             self.stm(self.workflow_instance_id)["memory_search_query"] = search_query
 
-        return {"memory_search_query": search_query}
+        return {
+            "memory_search_query": search_query,
+            "llm_time": llm_time
+        }

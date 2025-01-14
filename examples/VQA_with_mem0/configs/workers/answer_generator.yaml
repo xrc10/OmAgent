@@ -1,2 +1,3 @@
 name: VQAAnswerGenerator
-llm: ${sub|gpt} 
+# llm: ${sub|doubao_vision_lite}
+llm: ${sub|fk77_dpo}

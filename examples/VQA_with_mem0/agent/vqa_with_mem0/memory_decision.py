@@ -3,6 +3,7 @@ from omagent_core.models.llms.base import BaseLLMBackend
 from omagent_core.models.llms.openai_gpt import OpenaiGPTLLM
 from omagent_core.models.llms.schemas import Message
 from omagent_core.utils.registry import registry
+import time
 
 MEMORY_DECISION_PROMPT = """You are an AI assistant that helps with visual question answering while maintaining a memory of past interactions. You should lean towards using memory when there's any possibility of relevant past information.
 
@@ -10,7 +11,7 @@ For the given text query, you should:
 1. Decide if searching memory could be helpful (be generous - if there's any chance past information could be relevant, say yes)
 2. Determine if the image is required for memory search (if memory is needed)
 3. Determine if the image is required to answer the query (regardless of memory)
-4. If no memory and no image is needed everywhere and the query is trivial to answer, provide a direct answer
+4. If no memory and no image is needed everywhere and the query is trivial to answer, provide a direct answer using the same language as the query
 
 Memory should be used when:
 - Query asks about past information (what did I do, when did I see, etc.)
@@ -96,7 +97,15 @@ class MemoryDecisionWorker(BaseWorker, BaseLLMBackend):
             Message(role="user", message_type="text", content=user_instruction)
         ]
 
+        # Time the LLM API call
+        start_time = time.time()
         response = self.llm.generate(records=decision_messages)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        
+        # Store the elapsed time in STM for later use
+        # self.stm(self.workflow_instance_id)["llm_decision_time"] = elapsed_time
+        
         decision_response = response["choices"][0]["message"]["content"]
 
         # Parse response
@@ -138,9 +147,11 @@ class MemoryDecisionWorker(BaseWorker, BaseLLMBackend):
         elif image_required_answer:
             final_decision = "answer_generator"
         else:
-            # remove the image in stm and run answer_generator
-            self.stm(self.workflow_instance_id)["image_cache"] = None
             final_decision = "answer_generator"
+
+        # remove the image in stm if not needed
+        if (not image_required_answer) and (not image_required_memory):
+            self.stm(self.workflow_instance_id)["image_cache"] = None
 
         return {
             "memory_required": memory_required,
@@ -151,5 +162,6 @@ class MemoryDecisionWorker(BaseWorker, BaseLLMBackend):
             "skip_everything": not memory_required and not image_required_answer,
             "final_answer": direct_answer if not memory_required and not image_required_answer else None,
             "reason": reason,
-            "final_decision": final_decision
+            "final_decision": final_decision,
+            "llm_time": elapsed_time
         }

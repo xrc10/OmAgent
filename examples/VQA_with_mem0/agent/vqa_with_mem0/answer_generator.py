@@ -5,46 +5,35 @@ from omagent_core.models.llms.schemas import Content, Message
 from omagent_core.utils.registry import registry
 from omagent_core.utils.general import encode_image
 from .memory_manager import MemoryManager
+from time import time
 
 ANSWER_AND_STORE_PROMPT = """You are an AI assistant that helps with visual question answering while maintaining a memory of past interactions.
 
-Use the provided image and any retrieved memories (if available) to answer the user's question.
+Answer questions concisely based on the image and retrieved memories (if available). Use the same language as the query.
 After answering, decide if the current interaction should be stored in memory.
 
-When storing memories, always include:
-- Detailed visual descriptions of the objects/scenes being discussed (color, size, shape, brand if visible)
-- Temporal or contextual information provided by the user
-- Specific locations or spatial relationships
-- Any unique identifying characteristics
-
-For example, instead of just storing "This is a pen I bought yesterday", store "This is a blue and silver Parker ballpoint pen, approximately 5.5 inches long, with a metallic clip, purchased yesterday from the stationery store"
+When storing memories, include key details like:
+- Visual descriptions (color, size, shape, brand)
+- Temporal/contextual information
+- Locations and spatial relationships
+- Unique identifying characteristics
 
 Store memories that contain:
-- Factual information about objects or scenes in the image
-- Important relationships or context that might be useful later
-- Unique or distinctive features worth remembering
-- Personal information or history related to the objects
+- Factual information about objects/scenes
+- Important context or relationships
+- Unique/distinctive features
+- Personal information or history
 
-Don't store memories that are:
+Don't store:
 - Simple yes/no answers
 - Subjective opinions
-- Redundant information already stored
-- Generic observations that wouldn't help future interactions
+- Redundant information
+- Generic observations
 
-Examples:
-Q: "Is this a cat?"
-A: "Yes, this is a cat."
-Store: NO (simple yes/no answer)
-
-Q: "这支笔是我前天买的"
-A: "好的，我已经记下这支笔是您前天购买的。这是一支银色的钢笔，笔身上有金色装饰，长度大约14厘米。"
-Store: YES (includes both temporal and detailed visual information)
-MEMORY_CONTENT: "用户前天购买了一支银色钢笔，笔身有金色装饰，长约14厘米，笔尖细长。"
-
-Format your response as:
-ANSWER: <your answer to the user>
+Format response as:
+ANSWER: <concise answer>
 STORE_MEMORY: YES/NO
-MEMORY_CONTENT: <content to store if storing, including detailed visual description>"""
+MEMORY_CONTENT: <detailed memory if storing>"""
 
 @registry.register_worker()
 class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
@@ -63,9 +52,18 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
         memory_search_results = self.stm(self.workflow_instance_id).get("memory_search_results", {})
         relevant_memories = memory_search_results.get("relevant_memories", None)
 
+        # Filter memories by score threshold and format them
+        memory_context = ""
+        if relevant_memories:
+            filtered_memories = [mem for mem in relevant_memories if mem.get("score", 0) >= 0.2]
+            if filtered_memories:
+                memory_context = "\nRelevant memories from past interactions:\n" + "\n".join(
+                    [f"- {mem.get('memory', '')}" for mem in filtered_memories]
+                )
+
         answer_messages = [
             Message(role="system", message_type="text", content=ANSWER_AND_STORE_PROMPT),
-            Message(role="user", message_type="text", content=user_instruction)
+            Message(role="user", message_type="text", content=user_instruction + memory_context)
         ]
 
         # Add image if available
@@ -86,18 +84,10 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
                 )
             )
 
-        # Add relevant memories if available
-        if relevant_memories:
-            answer_messages.append(
-                Message(
-                    role="system",
-                    message_type="text",
-                    content=f"Relevant memories found: {relevant_memories}"
-                )
-            )
-
-        # Generate final answer
+        # Time the LLM API call
+        start_time = time()
         response = self.llm.generate(records=answer_messages)
+        llm_time = time() - start_time
         answer_response = response["choices"][0]["message"]["content"]
 
         # Parse response - more robust parsing
@@ -136,9 +126,14 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
                 metadata={"type": "vqa_interaction"}
             )
 
+        # remove the image part before saving answer messages
+        answer_messages = [msg for msg in answer_messages if msg.message_type != "image"]
+
         return {
             "answer": answer,
             "relevant_memories": relevant_memories,
             "memory_stored": store_memory,
-            "memory_content": memory_content
+            "memory_content": memory_content,
+            "llm_time": llm_time,  # Add timing to output
+            "answer_messages_without_image": answer_messages
         }

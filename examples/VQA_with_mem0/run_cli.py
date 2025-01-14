@@ -26,7 +26,7 @@ container.from_config(CURRENT_PATH.joinpath("container.yaml"))
 
 
 # Initialize workflow with new structure
-workflow = ConductorWorkflow(name="VQA_with_mem0_v3")
+workflow = ConductorWorkflow(name="VQA_with_mem0_sf")
 
 # Configure workflow tasks
 task1 = simple_task(

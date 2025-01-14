@@ -13,6 +13,7 @@ logging.init_logger("omagent", "omagent", level="INFO")
 
 # Import agent-specific components
 from agent.input_interface.input_interface import InputInterface
+from agent.output_formatter.output_formatter import OutputFormatter
 
 # Set current working directory path
 CURRENT_PATH = root_path = Path(__file__).parents[0]
@@ -26,7 +27,7 @@ container.from_config(CURRENT_PATH.joinpath("container.yaml"))
 
 
 # Initialize workflow with new structure
-workflow = ConductorWorkflow(name="VQA_with_mem0_v2")
+workflow = ConductorWorkflow(name="VQA_with_mem0_sf")
 
 # Configure workflow tasks
 task1 = simple_task(
@@ -108,6 +109,6 @@ workflow.register(True)
 # Initialize and start app client with workflow configuration
 config_path = CURRENT_PATH.joinpath("configs")
 agent_client = AppClient(
-    interactor=workflow, config_path=config_path, workers=[InputInterface()]
+    interactor=workflow, config_path=config_path, workers=[InputInterface(), OutputFormatter()]
 )
 agent_client.start_interactor()
