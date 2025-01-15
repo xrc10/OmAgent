@@ -1,22 +1,24 @@
+import itertools
 from copy import deepcopy
 from typing import Any, Dict, List, Union
 
-from omagent_core.engine.orkes.orkes_workflow_client import workflow_client
-from shortuuid import uuid
-from typing_extensions import Self
-
 from omagent_core.engine.http.models import *
-from omagent_core.engine.http.models.start_workflow_request import IdempotencyStrategy
-from omagent_core.engine.workflow.executor.workflow_executor import WorkflowExecutor
+from omagent_core.engine.http.models.start_workflow_request import \
+    IdempotencyStrategy
+from omagent_core.engine.orkes.orkes_workflow_client import workflow_client
+from omagent_core.engine.workflow.executor.workflow_executor import \
+    WorkflowExecutor
 from omagent_core.engine.workflow.task.fork_task import ForkTask
 from omagent_core.engine.workflow.task.join_task import JoinTask
+from omagent_core.engine.workflow.task.set_variable_task import SetVariableTask
 from omagent_core.engine.workflow.task.switch_task import SwitchTask
 from omagent_core.engine.workflow.task.task import TaskInterface
 from omagent_core.engine.workflow.task.task_type import TaskType
 from omagent_core.engine.workflow.task.timeout_policy import TimeoutPolicy
-import itertools
 from omagent_core.utils.container import container
 from omagent_core.utils.logger import logging
+from shortuuid import uuid
+from typing_extensions import Self
 
 
 class ConductorWorkflow:
@@ -230,7 +232,7 @@ class ConductorWorkflow:
         start_workflow_request.task_to_domain = task_to_domain
 
         return self._executor.start_workflow(start_workflow_request)
-    
+
     def get_workflow(self, workflow_id: str, include_tasks: bool = None) -> Workflow:
         return self._executor.get_workflow(workflow_id, include_tasks)
 
@@ -314,12 +316,10 @@ class ConductorWorkflow:
         updated_task_list = []
         for i in range(len(workflow_task_list)):
             wft: WorkflowTask = workflow_task_list[i]
+            if wft.task_definition is None:
+                wft.task_definition = TaskDef()
             if container.conductor_config.debug:
-                if wft.task_definition is None:
-                    wft.task_definition = TaskDef()
-                    wft.task_definition.retry_count = 0
-                else:
-                    wft.task_definition.retry_count = 0
+                wft.task_definition.retry_count = 0
             updated_task_list.append(wft)
             if (
                 wft.type == "FORK_JOIN"
@@ -349,27 +349,33 @@ class ConductorWorkflow:
             self.__add_fork_join_tasks(forked_tasks)
             return self
         elif isinstance(task, dict):
-            switch_task = SwitchTask(task_ref_name='switch', case_expression=self._tasks[-1].output('switch_case_value'))
-            if 'default' in task:
-                switch_task.default_case(task.pop('default'))
+            switch_task = SwitchTask(
+                task_ref_name="switch",
+                case_expression=self._tasks[-1].output("switch_case_value"),
+            )
+            if "default" in task:
+                switch_task.default_case(task.pop("default"))
             for key, value in task.items():
                 switch_task.switch_case(key, value)
-                
+
             return self.__add_task(switch_task)
 
         elif isinstance(task, ConductorWorkflow):
-            inline = InlineSubWorkflowTask(
-                task_ref_name=task.name + "_" + str(uuid()), workflow=task
-            )
-            inline.input_parameters.update(task._input_template)
-            return self.__add_task(inline)
+            # inline = InlineSubWorkflowTask(
+            #     task_ref_name=task.name + "_" + str(uuid()), workflow=task
+            # )
+            # inline.input_parameters.update(task._input_template)
+            # return self.__add_task(inline)
+            sub_workflow_tasks = task._tasks
+            for sub_task in sub_workflow_tasks:
+                self.__add_task(sub_task)
+            return self
 
         elif isinstance(task, TaskInterface):
             return self.__add_task(task)
-        
-        else:
-            raise ValueError(f'Invalid task type {type(task)}')
 
+        else:
+            raise ValueError(f"Invalid task type {type(task)}")
 
     # Append task
     def add(self, task: Union[TaskInterface, List[TaskInterface]]) -> Self:
@@ -402,7 +408,11 @@ class ConductorWorkflow:
         suffix = str(uuid())
 
         fork_task = ForkTask(
-            task_ref_name="forked_" + suffix, forked_tasks=forked_tasks, join_on=[each.task_reference_name for each in itertools.chain(*forked_tasks)]
+            task_ref_name="forked_" + suffix,
+            forked_tasks=forked_tasks,
+            join_on=[
+                each.task_reference_name for each in itertools.chain(*forked_tasks)
+            ],
         )
         self._tasks.append(fork_task)
         return self
@@ -424,19 +434,21 @@ class ConductorWorkflow:
             return "${" + f"workflow.output" + "}"
         else:
             return "${" + f"workflow.output.{json_path}" + "}"
-        
+
     def stop_all_running_workflows(self):
         try:
             running_workflows = workflow_client.search(query="status IN (RUNNING)")
             if running_workflows:
                 for workflow in running_workflows.results:
                     if workflow.workflow_type == self.name:
-                        workflow_client.terminate_workflow(workflow_id=workflow.workflow_id)
-                logging.info('Stopped all running workflows')
+                        workflow_client.terminate_workflow(
+                            workflow_id=workflow.workflow_id
+                        )
+                logging.info("Stopped all running workflows")
             else:
-                logging.info('No running workflows found')
+                logging.info("No running workflows found")
         except Exception as e:
-            logging.error(f'Error while stopping running workflows: {e}')
+            logging.error(f"Error while stopping running workflows: {e}")
 
 
 class InlineSubWorkflowTask(TaskInterface):

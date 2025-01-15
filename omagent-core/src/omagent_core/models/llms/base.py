@@ -1,24 +1,26 @@
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Hashable
 from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, TypeVar, Union
 
+from PIL import Image
 from pydantic import Field, field_validator
 from tenacity import retry, stop_after_attempt, stop_after_delay
 
-from .schemas import Message
+from ...base import BotBase
 from ...utils.env import EnvVar
 from ...utils.general import LRUCache
 from ...utils.registry import registry
-from ...base import BotBase
 from .prompt.base import _OUTPUT_PARSER, StrParser
 from .prompt.parser import BaseOutputParser
 from .prompt.prompt import PromptTemplate
-from collections.abc import Hashable
-from PIL import Image
-import re
+from .schemas import Message
+import copy
+from collections.abc import Iterator
 
 T = TypeVar("T", str, dict, list)
 
@@ -26,16 +28,16 @@ T = TypeVar("T", str, dict, list)
 class BaseLLM(BotBase, ABC):
     cache: bool = False
     lru_cache: LRUCache = Field(default=LRUCache(EnvVar.LLM_CACHE_NUM))
-    
-    @property 
+
+    @property
     def workflow_instance_id(self) -> str:
-        if hasattr(self, '_parent'):
+        if hasattr(self, "_parent"):
             return self._parent.workflow_instance_id
         return None
-        
+
     @workflow_instance_id.setter
     def workflow_instance_id(self, value: str):
-        if hasattr(self, '_parent'):
+        if hasattr(self, "_parent"):
             self._parent.workflow_instance_id = value
 
     @abstractmethod
@@ -46,8 +48,7 @@ class BaseLLM(BotBase, ABC):
         """Run the LLM on the given prompt and input."""
         raise NotImplementedError("Async generation not implemented for this LLM.")
 
-
-    def generate(self, records: List[Message], **kwargs) -> str:
+    def generate(self, records: List[Message], **kwargs) -> str: # TODO: use python native lru cache
         """Run the LLM on the given prompt and input."""
         if self.cache:
             key = self._cache_key(records)
@@ -103,8 +104,14 @@ class BaseLLMBackend(BotBase, ABC):
     output_parser: Optional[BaseOutputParser] = None
     prompts: List[PromptTemplate] = []
     llm: BaseLLM
-    token_usage: ClassVar[dict] = defaultdict(int)
 
+
+    @property
+    def token_usage(self):
+        if not hasattr(self, 'workflow_instance_id'):
+            raise AttributeError("workflow_instance_id not set")
+        return dict(self.stm(self.workflow_instance_id).get('token_usage', defaultdict(int)))
+    
     @field_validator("output_parser", mode="before")
     @classmethod
     def set_output_parser(cls, output_parser: Union[BaseOutputParser, Dict, None]):
@@ -124,6 +131,7 @@ class BaseLLMBackend(BotBase, ABC):
     ) -> List[PromptTemplate]:
         init_prompts = []
         for prompt in prompts:
+            prompt = copy.deepcopy(prompt)
             if isinstance(prompt, Path):
                 if prompt.suffix == ".prompt":
                     init_prompts.append(PromptTemplate.from_file(prompt))
@@ -153,18 +161,18 @@ class BaseLLMBackend(BotBase, ABC):
 
     def prep_prompt(
         self, input_list: List[Dict[str, Any]], prompts=None, **kwargs
-    ) -> List[Message]:
+    ) -> List[List[Message]]:
         """Prepare prompts from inputs."""
         if prompts is None:
             prompts = self.prompts
         images = []
-        if len(kwargs_images:=kwargs.get("images", [])):
+        if len(kwargs_images := kwargs.get("images", [])):
             images = kwargs_images
         processed_prompts = []
         for inputs in input_list:
             records = []
             for prompt in prompts:
-                selected_inputs = {k: inputs.get(k, '') for k in prompt.input_variables}
+                selected_inputs = {k: inputs.get(k, "") for k in prompt.input_variables}
                 prompt_str = prompt.template
                 parts = re.split(r"(\{\{.*?\}\})", prompt_str)
                 formatted_parts = []
@@ -173,12 +181,16 @@ class BaseLLMBackend(BotBase, ABC):
                         part = part[2:-2].strip()
                         value = selected_inputs[part]
                         if isinstance(value, (Image.Image, list)):
-                            formatted_parts.extend([value] if isinstance(value, Image.Image) else value)
+                            formatted_parts.extend(
+                                [value] if isinstance(value, Image.Image) else value
+                            )
                         else:
                             formatted_parts.append(str(value))
                     else:
                         formatted_parts.append(str(part))
-                formatted_parts = formatted_parts[0] if len(formatted_parts) == 1 else formatted_parts
+                formatted_parts = (
+                    formatted_parts[0] if len(formatted_parts) == 1 else formatted_parts
+                )
                 if prompt.role == "system":
                     records.append(Message.system(formatted_parts))
                 elif prompt.role == "user":
@@ -191,20 +203,37 @@ class BaseLLMBackend(BotBase, ABC):
     def infer(self, input_list: List[Dict[str, Any]], **kwargs) -> List[T]:
         prompts = self.prep_prompt(input_list, **kwargs)
         res = []
+        stm_token_usage = self.stm(self.workflow_instance_id).get('token_usage', defaultdict(int))
+        
+        def process_stream(self, stream_output):
+            for chunk in stream_output:
+                if chunk.usage is not None:
+                    for key, value in chunk.usage.dict().items():
+                        if key in ["prompt_tokens", "completion_tokens", 'total_tokens']:
+                            if value is not None:
+                                stm_token_usage[key] += value
+                    self.stm(self.workflow_instance_id)['token_usage'] = stm_token_usage
+            
+                yield chunk
+        
         for prompt in prompts:
             output = self.llm.generate(prompt, **kwargs)
-            # for key, value in output["usage"].items():
-            #     if value is not None:
-            #         pass
-            if not self.llm.stream:
-                for choice in output["choices"]:
-                    if choice.get("message"):
-                        choice["message"]["content"] = self.output_parser.parse(
-                            choice["message"]["content"]
-                        )
+            if not isinstance(output, Iterator):
+                for key, value in output.get("usage", {}).items():
+                    if key in ["prompt_tokens", "completion_tokens", 'total_tokens']:
+                        if value is not None:
+                            stm_token_usage[key] += value
+                if not self.llm.stream:
+                    for choice in output["choices"]:
+                        if choice.get("message"):
+                            choice["message"]["content"] = self.output_parser.parse(
+                                choice["message"]["content"]
+                            )
                 res.append(output)
             else:
-                res.append(output)
+                res.append(process_stream(self, output))
+                
+        self.stm(self.workflow_instance_id)['token_usage'] = stm_token_usage
         return res
 
     async def ainfer(self, input_list: List[Dict[str, Any]], **kwargs) -> List[T]:

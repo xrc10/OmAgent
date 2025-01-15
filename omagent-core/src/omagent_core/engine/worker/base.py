@@ -1,16 +1,13 @@
-from abc import ABC, abstractmethod
+import asyncio
 import dataclasses
 import inspect
 import logging
 import socket
 import time
 import traceback
+from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Any, Callable, Union, Optional
-import asyncio
-
-from typing_extensions import Self
-from pydantic import Field
+from typing import Any, Callable, Optional, Union
 
 from omagent_core.base import BotBase
 from omagent_core.engine.automator import utils
@@ -22,7 +19,8 @@ from omagent_core.engine.http.models.task import Task
 from omagent_core.engine.http.models.task_result import TaskResult
 from omagent_core.engine.http.models.task_result_status import TaskResultStatus
 from omagent_core.engine.worker.exception import NonRetryableException
-
+from pydantic import Field
+from typing_extensions import Self
 
 ExecuteTaskFunction = Callable[[Union[Task, object]], Union[TaskResult, object]]
 
@@ -51,10 +49,13 @@ def is_callable_return_value_of_type(
 
 
 class BaseWorker(BotBase, ABC):
-    poll_interval: float = Field(default=100, description="Worker poll interval in millisecond")
+    poll_interval: float = Field(
+        default=100, description="Worker poll interval in millisecond"
+    )
     domain: Optional[str] = Field(default=None, description="The domain of workflow")
-    concurrency: int = Field(default=1, description="The concurrency of worker")
-    
+    concurrency: int = Field(default=5, description="The concurrency of worker")
+    _task_type: Optional[str] = None
+
     def model_post_init(self, __context: Any) -> None:
         self.task_definition_name = self.name
         self.next_task_index = 0
@@ -62,18 +63,27 @@ class BaseWorker(BotBase, ABC):
 
         self.api_client = ApiClient()
         self.worker_id = deepcopy(self.get_identity())
-        
+
         self._workflow_instance_id = None
+        self._task_type = None
         for _, attr_value in self.__dict__.items():
             if isinstance(attr_value, BotBase):
                 attr_value._parent = self
-                
-    @property 
-    def workflow_instance_id(self) -> str:
+
+    @property
+    def task_type(self) -> str:
+        return self._task_type
+
+    @task_type.setter
+    def task_type(self, value: str):
+        self._task_type = value
+
+    @property
+    def workflow_instance_id(self) -> Optional[Union[str]]:
         return self._workflow_instance_id
-        
+
     @workflow_instance_id.setter
-    def workflow_instance_id(self, value: str):
+    def workflow_instance_id(self, value: Optional[Union[str]]):
         self._workflow_instance_id = value
 
     @abstractmethod
@@ -84,8 +94,16 @@ class BaseWorker(BotBase, ABC):
         task_input = {}
         task_output = None
         task_result: TaskResult = self.get_task_result_from_task(task)
-        self.workflow_instance_id = task.workflow_instance_id
-
+        if task.conversation_info:
+            self.workflow_instance_id = '|'.join([
+                task.workflow_instance_id,
+                task.conversation_info.get('agentId', ''),
+                task.conversation_info.get('conversationId', ''),
+                task.conversation_info.get('chatId', ''),
+            ])
+        else:
+            self.workflow_instance_id = task.workflow_instance_id
+            
         try:
             if is_callable_input_parameter_a_task(
                 callable=self._run,
@@ -115,12 +133,9 @@ class BaseWorker(BotBase, ABC):
                     except RuntimeError:
                         loop = asyncio.new_event_loop()
                         asyncio.set_event_loop(loop)
-                    
+
                     task_output = loop.run_until_complete(
-                        asyncio.gather(
-                            self._run(**task_input),
-                            return_exceptions=True
-                        )
+                        asyncio.gather(self._run(**task_input), return_exceptions=True)
                     )[0]
                 else:
                     task_output = self._run(**task_input)
@@ -151,7 +166,7 @@ class BaseWorker(BotBase, ABC):
             if len(ne.args) > 0:
                 task_result.reason_for_incompletion = ne.args[0]
         self.workflow_instance_id = None
-        
+
         if dataclasses.is_dataclass(type(task_result.output_data)):
             task_output = dataclasses.asdict(task_result.output_data)
             task_result.output_data = task_output
@@ -204,6 +219,8 @@ class BaseWorker(BotBase, ABC):
             task_id=task.task_id,
             workflow_instance_id=task.workflow_instance_id,
             worker_id=self.get_identity(),
+            biz_meta=task.biz_meta,
+            callback_url=task.callback_url,
         )
 
     def get_domain(self) -> str:
