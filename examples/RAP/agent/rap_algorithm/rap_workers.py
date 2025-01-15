@@ -81,14 +81,16 @@ class Expansion(BaseWorker, BaseLLMBackend):
             question_info += f"Answer {qid}.{i}: {n.state}\n"
         question_info += f"Question {qid}.{len(path)}:"
         self.prompts = self.set_prompts([CURRENT_PATH.joinpath(f'prompts/{task}/ic_examples.prompt')])
-        # Genarating 4 sub_quesitons
-        sub_questions = [self.simple_infer(input=question_info)["choices"][0]["message"]["content"] for _ in range(SUB_QUESTION_GEN_NUM)]
-        sub_questions = [s.split('\n')[0].strip() for s in sub_questions]
+        # Generate SUB_QUESTION_GEN_NUM sub-questions in one API call
+        self.llm.n = SUB_QUESTION_GEN_NUM
+        responses = self.simple_infer(input=question_info)["choices"]
+        sub_questions = [r["message"]["content"].split('\n')[0].strip() for r in responses]
         sub_questions = [s.replace(f"Question {qid}.{len(path)}: ","") for s in sub_questions]
+        self.llm.n = 1
+
         self.callback.send_answer(self.workflow_instance_id, msg='\n'.join(sub_questions))
-        actions = sub_questions
         # deduplicate
-        actions = list(set(actions))
+        actions = list(set(sub_questions))
         return actions
     
     def get_action_reward_math(self, action, path: List[Node]):
@@ -96,17 +98,21 @@ class Expansion(BaseWorker, BaseLLMBackend):
         question = self.stm(self.workflow_instance_id)['tree'].data_input
         qid = N_SHOT + 1
         question_info = f"Question {qid}: {question}\n"
-        # Evaluate whether the new sub_quesiton is useful.
         for i, n in enumerate(path):
             if i==0:
                 continue
             question_info += f"Question {qid}.{i}: {n.action}\n"
         question_info += f"New question {qid}.{len(path)+1}: {action}"
         self.llm.max_tokens = 1
+        # Get YES_SAMPLE_NUM responses in one API call
         # In RAP paper, it calculate the logits ratio between Yes and No just like ZoomEye
         # Since OpenAI’s API cannot return logits, I use this approach to replace the original computation method.
         self.prompts = self.set_prompts([CURRENT_PATH.joinpath(f'prompts/{task}/action_reward.prompt')])
-        responses = [self.simple_infer(input=question_info)["choices"][0]["message"]["content"] for _ in range(YES_SAMPLE_NUM)]
+        # Generate YES_SAMPLE_NUM responses in one API call
+        self.llm.n = YES_SAMPLE_NUM
+        responses = self.simple_infer(input=question_info)["choices"]
+        responses = [r["message"]["content"] for r in responses]
+        self.llm.n = 1
         # For debug
         self.callback.send_answer(self.workflow_instance_id, msg='\n'.join(responses))
         yes_ratio = sum(["Yes" in x for x in responses]) / YES_SAMPLE_NUM
@@ -148,9 +154,12 @@ class Expansion(BaseWorker, BaseLLMBackend):
         result = ""
         # For debug
         self.callback.send_answer(self.workflow_instance_id, msg=question_info)
-        for _ in range(ANSWER_GEN_NUM):
-            output = self.simple_infer(input=question_info)["choices"][0]["message"]["content"]
-            output = output.split('\n')[0].strip()
+        # Generate ANSWER_GEN_NUM answers in one API call
+        self.llm.n = ANSWER_GEN_NUM
+        responses = self.simple_infer(input=question_info)["choices"]
+        outputs = [r["message"]["content"].split('\n')[0].strip() for r in responses]
+        self.llm.n = 1
+        for output in outputs:
             self.callback.send_answer(self.workflow_instance_id, msg=output)
             answer = retrieve_answer(output)
             answer_dict[answer].append(output)
