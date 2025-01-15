@@ -1,0 +1,3 @@
+name: MemoryDecisionWorker
+# llm: ${sub|doubao_lite}
+llm: ${sub|qwen25_7b_sf}

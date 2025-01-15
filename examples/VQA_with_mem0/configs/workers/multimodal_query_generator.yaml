@@ -1,3 +1,3 @@
-name: VQAAnswerGenerator
+name: MultimodalQueryGenerator
 # llm: ${sub|doubao_vision_lite}
 llm: ${sub|fk77_dpo}

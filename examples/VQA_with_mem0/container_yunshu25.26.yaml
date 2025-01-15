@@ -1,7 +1,7 @@
 conductor_config:
   name: Configuration
   base_url:
-    value: http://10.8.28.230:8080
+    value: http://10.8.25.26:8080
     description: The Conductor Server API endpoint
     env_var: CONDUCTOR_SERVER_URL
   auth_key:
@@ -24,36 +24,36 @@ connectors:
   redis_stream_client:
     name: RedisConnector
     host:
-      value: 10.8.17.148
+      value: 10.8.25.26
       env_var: HOST
     port:
-      value: 30959
+      value: 6379
       env_var: PORT
     password:
-      value: Hzlh.com2020
+      value: null
       env_var: PASSWORD
     username:
       value: null
       env_var: USERNAME
     db:
-      value: 20
+      value: 0
       env_var: DB
   redis_stm_client:
     name: RedisConnector
     host:
-      value: 10.8.17.148
+      value: 10.8.25.26
       env_var: HOST
     port:
-      value: 30959
+      value: 6379
       env_var: PORT
     password:
-      value: Hzlh.com2020
+      value: null
       env_var: PASSWORD
     username:
       value: null
       env_var: USERNAME
     db:
-      value: 20
+      value: 0
       env_var: DB
 components:
   AppCallback:
