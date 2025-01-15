@@ -31,6 +31,16 @@ class InputInterface(BaseWorker):
             input_prompt="",
         )
 
+        # Extract user_id from kwargs if present
+        user_id = None
+        if "kwargs" in user_input:
+            for kwarg in user_input["kwargs"]:
+                if kwarg["key"] == "userId":
+                    user_id = kwarg["value"]
+                    # Store user_id in shared memory
+                    self.stm(self.workflow_instance_id)["user_id"] = user_id
+                    break
+
         image_path = None
         # Extract text and image content from input message
         content = user_input["messages"][-1]["content"]
