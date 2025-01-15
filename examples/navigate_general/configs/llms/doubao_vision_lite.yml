@@ -1,0 +1,6 @@
+name: OpenaiGPTLLM
+model_id: ep-20250102150042-mltj9
+api_key: ${env| custom_openai_key, c549be1a-2cba-40d7-a30b-39622789f190}
+endpoint: ${env| custom_openai_endpoint, https://ark.cn-beijing.volces.com/api/v3}
+temperature: 0
+vision: true
