@@ -5,9 +5,10 @@ from omagent_core.models.llms.schemas import Content, Message
 from omagent_core.utils.registry import registry
 from omagent_core.utils.general import encode_image
 from time import time
+from datetime import datetime
 from openai import Stream
 
-ANSWER_PROMPT = """You are an AI assistant that helps with visual question answering."""
+ANSWER_PROMPT = """You are an AI assistant that helps with visual question answering. Current date and time: {datetime}"""
 
 @registry.register_worker()
 class VQAAnswerGeneratorStream(BaseWorker, BaseLLMBackend):
@@ -16,11 +17,14 @@ class VQAAnswerGeneratorStream(BaseWorker, BaseLLMBackend):
     llm: OpenaiGPTLLM
 
     def _generate_answer(self, user_instruction: str, memory_context: str, image_cache: dict) -> tuple:
+        # Get current datetime
+        current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
         # add concise requirement to the prompt
         user_instruction = "Keep your answer within 50 words unless specified otherwise. If response in Chinese, please response within 50 characters. Use the same language as the query.\nNow answer the following question: " + user_instruction
 
         answer_messages = [
-            Message(role="system", message_type="text", content=ANSWER_PROMPT),
+            Message(role="system", message_type="text", content=ANSWER_PROMPT.format(datetime=current_datetime)),
             Message(role="user", message_type="text", content=user_instruction + memory_context)
         ]
 
