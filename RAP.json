@@ -1,0 +1,85 @@
+{
+    "name": "RAP",
+    "tasks": [
+        {
+            "name": "SimpleRAPInput",
+            "taskReferenceName": "input_task",
+            "inputParameters": {},
+            "type": "SIMPLE",
+            "taskDefinition": {}
+        },
+        {
+            "name": "Selection",
+            "taskReferenceName": "selection",
+            "inputParameters": {},
+            "type": "SIMPLE",
+            "taskDefinition": {}
+        },
+        {
+            "name": "Expansion",
+            "taskReferenceName": "expansion",
+            "inputParameters": {},
+            "type": "SIMPLE",
+            "taskDefinition": {}
+        },
+        {
+            "name": "SimulationPreProcess",
+            "taskReferenceName": "simulation_preprocess",
+            "inputParameters": {},
+            "type": "SIMPLE",
+            "taskDefinition": {}
+        },
+        {
+            "name": "simulation_loop",
+            "taskReferenceName": "simulation_loop",
+            "inputParameters": {},
+            "type": "DO_WHILE",
+            "taskDefinition": {},
+            "loopCondition": "if ($.simulation_postprocess[\"finish\"] == true){false;} else {true;} ",
+            "loopOver": [
+                {
+                    "name": "Expansion",
+                    "taskReferenceName": "expansion2",
+                    "inputParameters": {},
+                    "type": "SIMPLE"
+                },
+                {
+                    "name": "SimulationPostProcess",
+                    "taskReferenceName": "simulation_postprocess",
+                    "inputParameters": {},
+                    "type": "SIMPLE"
+                }
+            ]
+        },
+        {
+            "name": "BackPropagation",
+            "taskReferenceName": "back_propagation",
+            "inputParameters": {},
+            "type": "SIMPLE",
+            "taskDefinition": {}
+        },
+        {
+            "name": "MCTSCompletionCheck",
+            "taskReferenceName": "mcts_completion_check",
+            "inputParameters": {},
+            "type": "SIMPLE",
+            "taskDefinition": {}
+        },
+        {
+            "name": "OutputInterface",
+            "taskReferenceName": "output_interface",
+            "inputParameters": {},
+            "type": "SIMPLE",
+            "taskDefinition": {}
+        }
+    ],
+    "inputParameters": [],
+    "outputParameters": {},
+    "failureWorkflow": "",
+    "schemaVersion": 2,
+    "workflowStatusListenerEnabled": false,
+    "ownerEmail": "default@omagent.ai",
+    "timeoutSeconds": 60,
+    "variables": {},
+    "inputTemplate": {}
+}
