@@ -7,6 +7,7 @@ import logging
 from omagent_core.engine.http.models import *
 import json
 
+
 class LocalWorkflowExecutor:
     def __init__(self):
         logging.basicConfig(level=logging.INFO)
@@ -20,14 +21,13 @@ class LocalWorkflowExecutor:
 
         for key, value in input_params.items():
             if isinstance(value, str) and value.startswith('${') and value.endswith('}'):
-                # Extract reference path
+
                 ref_path = value[2:-1]
                 parts = ref_path.split('.')
                 
-                # Get referenced task output
                 if parts[0] in self.task_outputs:
                     task_output = self.task_outputs[parts[0]]['output']
-                    for part in parts[2:]:  # Skip task name and 'output'
+                    for part in parts[2:]:  
                         if isinstance(task_output, dict):
                             task_output = task_output.get(part, {})
                     processed_inputs[key] = task_output
@@ -79,14 +79,17 @@ class LocalWorkflowExecutor:
                 # Execute all tasks in loop
                 for loop_task in task['loopOver' if 'loopOver' in task else 'loop_over']:                    
                     self.execute_task(loop_task, workers)
-                exit_monitor_output = self.task_outputs['task_exit_monitor']['output']
-                if exit_monitor_output.get('exit_flag', False):
-                    break
+                if 'loopCondition' in task or "loop_condition" in task:
+                    should_continue = not self.evaluate_loop_condition(task['loopCondition' if 'loopCondition' in task else "loop_condition"])            
+                    if not should_continue:
+                        break
+                else:
+                    exit_monitor_output = self.task_outputs['task_exit_monitor']['output']
+                    if exit_monitor_output.get('exit_flag', False):
+                        break
                     
         elif task_type == 'SWITCH':
-            # Get switch case value
             case_value = self.evaluate_input_parameters(task)['switchCaseValue']
-            # Execute matching case
             if case_value in task['decision_cases']:
                 for case_task in task['decision_cases'][case_value]:
                     self.execute_task(case_task.to_dict(), workers)
@@ -95,6 +98,99 @@ class LocalWorkflowExecutor:
                     self.execute_task(default_task.to_dict(), workers)
                     
         return {}
+
+    def evaluate_loop_condition(self, condition: str) -> bool:
+        """Evaluate loop condition using the task outputs"""
+        # Clean up the condition string
+        condition = condition.strip()
+        if condition.startswith('if'):
+            condition = condition[2:].strip()
+        
+        # Extract the main condition part (between parentheses)
+        main_condition = condition[condition.find('(') + 1:condition.rfind(')')].strip()
+        
+        # First split by OR operator (||)
+        or_conditions = [cond.strip() for cond in main_condition.split('||')]
+        
+        for or_part in or_conditions:
+            # For each OR part, split by AND operator (&&)
+            and_conditions = [cond.strip() for cond in or_part.split('&&')]
+            
+            # All AND conditions must be true for this OR part to be true
+            and_results = True
+            for and_condition in and_conditions:
+                condition_result = self._evaluate_single_condition(and_condition)
+                if not condition_result:
+                    and_results = False
+                    break
+            
+            # If any OR part (all of its AND conditions) is true, return false to stop the loop
+            if and_results:
+                return False
+        
+        # If no OR conditions were true (meaning no AND group was completely true)
+        # return true to continue the loop
+        return True
+
+    def _evaluate_single_condition(self, condition: str) -> bool:
+        """Evaluate a single condition without OR operators"""
+        condition = condition.strip('()')
+        
+        if '$.' not in condition:
+            return False
+            
+        # Handle different comparison operators
+        if '==' in condition:
+            left, right = [part.strip() for part in condition.split('==')]
+        elif '>' in condition:
+            left, right = [part.strip() for part in condition.split('>')]
+            operator = '>'
+        else:
+            return False
+            
+        # Parse left side (task reference)
+        if left.startswith('$.'):
+            task_ref = left[2:].split('.')[0]
+            properties = left[2:].split('.')[1:]
+            
+            # Get task output and navigate through properties
+            value = self.task_outputs.get(task_ref, {}).get('output', {})
+            for prop in properties:
+                if isinstance(value, dict):
+                    value = value.get(prop)
+                else:
+                    return False
+                    
+            # Parse right side (could be another task reference or a literal)
+            if right.startswith('$.'):
+                task_ref = right[2:].split('.')[0]
+                properties = right[2:].split('.')[1:]
+                right_value = self.task_outputs.get(task_ref, {}).get('output', {})
+                for prop in properties:
+                    if isinstance(right_value, dict):
+                        right_value = right_value.get(prop)
+                    else:
+                        return False
+            else:
+                # Handle literals
+                if right.lower() == 'true':
+                    right_value = True
+                elif right.lower() == 'false':
+                    right_value = False
+                else:
+                    try:
+                        right_value = int(right)
+                    except ValueError:
+                        right_value = right
+                        
+            # Compare values
+            if operator == '>':
+                return value > right_value
+            else:
+                return value == right_value
+                
+        return False
+
 
 class WorkflowExecutor:
     def __init__(self):
