@@ -20,7 +20,8 @@ class ObstacleSwitch(BaseWorker):
         # it could indicate an obstacle
         has_near_object = min_depth < 3.0
         has_far_object = max_depth > 6.0
-        potential_obstacle = has_near_object and has_far_object
+        # potential_obstacle = has_near_object and has_far_object
+        potential_obstacle = has_near_object
 
         if potential_obstacle:
             # 发送初始警告(改为中文)
@@ -29,10 +30,10 @@ class ObstacleSwitch(BaseWorker):
                 f"最近点距离：{min_depth:.1f}米，"
                 f"最远点距离：{max_depth:.1f}米"
             )
-            self.callback.send_answer(
-                self.workflow_instance_id,
-                msg=warning_msg
-            )
+            # self.callback.send_answer(
+            #     self.workflow_instance_id,
+            #     msg=warning_msg
+            # )
         else:
             self.callback.send_answer(
                 self.workflow_instance_id,

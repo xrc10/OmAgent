@@ -6,9 +6,9 @@ from omagent_core.utils.registry import registry
 from omagent_core.utils.general import encode_image
 from time import time
 
-MULTIMODAL_QUERY_PROMPT = """You are an AI assistant that helps generate memory search queries based on both text and image input.
+SYSTEM_PROMPT = """You are a helpful AI assistant that generates clear and specific search queries."""
 
-Given the user's question and the image, generate a clear and specific query to search in memory.
+USER_PROMPT = """Given the user's question and the image, generate a clear and specific query to search in memory.
 
 Examples:
 Q: "Did I eat this before?" (with image of pizza)
@@ -18,7 +18,9 @@ Q: "Have I been to this place?" (with image of park)
 -> Query: "visits to this park with green benches and fountain"
 
 Format your response as:
-SEARCH_QUERY: <your specific search query>"""
+SEARCH_QUERY: <your specific search query>
+
+User question: {user_instruction}"""
 
 @registry.register_worker()
 class MultimodalQueryGenerator(BaseWorker, BaseLLMBackend):
@@ -28,8 +30,8 @@ class MultimodalQueryGenerator(BaseWorker, BaseLLMBackend):
 
     def _run(self, user_instruction: str, *args, **kwargs):
         query_messages = [
-            Message(role="system", message_type="text", content=MULTIMODAL_QUERY_PROMPT),
-            Message(role="user", message_type="text", content=user_instruction)
+            Message(role="system", message_type="text", content=SYSTEM_PROMPT),
+            Message(role="user", message_type="text", content=USER_PROMPT.format(user_instruction=user_instruction))
         ]
 
         # Add image from cache

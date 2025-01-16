@@ -9,22 +9,22 @@ from omagent_core.utils.container import container
 from omagent_core.utils.logger import logging
 from omagent_core.utils.registry import registry
 
-logging.init_logger("omagent", "omagent", level="INFO")
-
 # Import agent-specific components
 from agent.input_interface.input_interface import InputInterface
 from agent.output_formatter.output_formatter import OutputFormatter
 
+# Initialize logging
+logging.init_logger("omagent", "omagent", level="INFO")
+
 # Set current working directory path
-CURRENT_PATH = root_path = Path(__file__).parents[0]
+CURRENT_PATH = Path(__file__).parents[0]
 
 # Import registered modules
 registry.import_module(project_path=CURRENT_PATH.joinpath("agent"))
 
+# Register STM and load config
 container.register_stm("RedisSTM")
-# Load container configuration from YAML file
 container.from_config(CURRENT_PATH.joinpath("container.yaml"))
-
 
 # Initialize workflow with new structure
 workflow = ConductorWorkflow(name="VQA_with_mem0_sf")
@@ -88,6 +88,25 @@ task6 = simple_task(
     task_reference_name="output_formatter"
 )
 
+# Add memory store task after answer generator tasks
+task7_0 = simple_task(
+    task_def_name="MemoryStore",
+    task_reference_name="memory_store0",
+    inputs={"user_instruction": task1.output("user_instruction")},
+)
+
+task7_1 = simple_task(
+    task_def_name="MemoryStore",
+    task_reference_name="memory_store1",
+    inputs={"user_instruction": task1.output("user_instruction")},
+)
+
+task7_2 = simple_task(
+    task_def_name="MemoryStore",
+    task_reference_name="memory_store2",
+    inputs={"user_instruction": task1.output("user_instruction")},
+)
+
 # Create switch task for routing based on memory_decision output
 switch_task = SwitchTask(
     task_ref_name="memory_decision_switch",
@@ -95,9 +114,9 @@ switch_task = SwitchTask(
 )
 
 # Add switch cases with task lists
-switch_task.switch_case("multimodal_query_generator", [task3, task4_0, task5_0])
-switch_task.switch_case("memory_search", [task4_1, task5_1])
-switch_task.switch_case("answer_generator", [task5_2])
+switch_task.switch_case("multimodal_query_generator", [task3, task4_0, task5_0, task7_0])
+switch_task.switch_case("memory_search", [task4_1, task5_1, task7_1])
+switch_task.switch_case("answer_generator", [task5_2, task7_2])
 switch_task.switch_case("output_formatter", [task6])
 
 # Connect workflow

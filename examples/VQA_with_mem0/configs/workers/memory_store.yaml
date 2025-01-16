@@ -1,0 +1,2 @@
+name: MemoryStore
+llm: ${sub|qwen25_7b_sf}  
