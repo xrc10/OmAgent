@@ -27,7 +27,7 @@ container.register_stm("RedisSTM")
 container.from_config(CURRENT_PATH.joinpath("container.yaml"))
 
 # Initialize workflow with new structure
-workflow = ConductorWorkflow(name="VQA_with_mem0_sf_stream")
+workflow = ConductorWorkflow(name="VQA_with_mem0_v2")
 
 # Configure workflow tasks
 task1 = simple_task(
