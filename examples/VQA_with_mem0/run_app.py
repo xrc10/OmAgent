@@ -27,7 +27,7 @@ container.register_stm("RedisSTM")
 container.from_config(CURRENT_PATH.joinpath("container.yaml"))
 
 # Initialize workflow with new structure
-workflow = ConductorWorkflow(name="VQA_with_mem0_sf")
+workflow = ConductorWorkflow(name="VQA_with_mem0_sf_stream")
 
 # Configure workflow tasks
 task1 = simple_task(
@@ -66,19 +66,19 @@ task4_1 = simple_task(
 
 # Split answer generator into three tasks
 task5_0 = simple_task(
-    task_def_name="VQAAnswerGenerator",
+    task_def_name="VQAAnswerGeneratorStream",
     task_reference_name="answer_generator0",
     inputs={"user_instruction": task1.output("user_instruction")},
 )
 
 task5_1 = simple_task(
-    task_def_name="VQAAnswerGenerator",
+    task_def_name="VQAAnswerGeneratorStream",
     task_reference_name="answer_generator1",
     inputs={"user_instruction": task1.output("user_instruction")},
 )
 
 task5_2 = simple_task(
-    task_def_name="VQAAnswerGenerator",
+    task_def_name="VQAAnswerGeneratorStream",
     task_reference_name="answer_generator2",
     inputs={"user_instruction": task1.output("user_instruction")},
 )

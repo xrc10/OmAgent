@@ -10,7 +10,7 @@ from openai import Stream
 ANSWER_PROMPT = """You are an AI assistant that helps with visual question answering."""
 
 @registry.register_worker()
-class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
+class VQAAnswerGeneratorStream(BaseWorker, BaseLLMBackend):
     """Generates answers for visual questions using image and memory context"""
 
     llm: OpenaiGPTLLM
@@ -42,13 +42,13 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
             )
 
         start_time = time()
-        self.llm.stream = False
+        self.llm.stream = True
         response = self.llm.generate(records=answer_messages)
         llm_time = time() - start_time
 
         # Handle streaming response
         if isinstance(response, Stream):
-            self.callback.send_answer(self.workflow_instance_id, msg="Streaming...")
+            # self.callback.send_answer(self.workflow_instance_id, msg="Streaming...")
             answer = ""
             self.callback.send_incomplete(self.workflow_instance_id, msg="")
             for chunk in response:
