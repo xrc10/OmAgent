@@ -21,7 +21,7 @@ USER_PROMPT = """
    a. 对于关于过去事件/购买的问题（例如"我什么时候买过这个？"，"这个东西是什么时候买的？"）：
       - 查找包含日期/时间的相关记忆
       - 如果没有找到相关记忆：
-        - 回答"抱歉，我没有找到相关的购买记录"或"我的记忆中没有这个购买信息"
+        - 回答"抱歉，我没有找到相关的记录"或"我的记忆中没有这个信息"
    
    b. 对于记忆存储请求：
       - 如果提供了图片并要求记住（如"记一下图片内容"或"记住我吃了这个药"）：
@@ -46,6 +46,20 @@ USER_PROMPT = """
 
 问题：{user_instruction}"""
 
+USER_PROMPT_WITHOUT_MEMORY = """
+根据当前图片回答问题，满足以下条件：
+
+1. 保持回答简洁：
+   - 回答最多50个汉字
+   - 对于图片记忆请求：先简要描述图片内容，然后确认
+   - 对于文字记忆请求：只需简短确认
+
+2. 始终使用中文回答
+
+3. 考虑当前上下文的日期/时间：{datetime}
+
+问题：{user_instruction}"""
+
 @registry.register_worker()
 class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
     """Generates answers for visual questions using image and memory context"""
@@ -56,11 +70,13 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
         # Get current datetime
         current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        # add concise requirement and memory awareness to the prompt
-        user_instruction = USER_PROMPT.format(user_instruction=user_instruction, memory_context=memory_context, datetime=current_datetime)
+        if len(memory_context) == 0:    
+            user_instruction = USER_PROMPT_WITHOUT_MEMORY.format(user_instruction=user_instruction, datetime=current_datetime)
+        else:
+            user_instruction = USER_PROMPT.format(user_instruction=user_instruction, memory_context=memory_context, datetime=current_datetime)
 
         answer_messages = [
-            Message(role="system", message_type="text", content=ANSWER_PROMPT.format(datetime=current_datetime)),
+            Message(role="system", message_type="text", content=ANSWER_PROMPT),
             Message(role="user", message_type="text", content=user_instruction)
         ]
 
@@ -119,6 +135,8 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
                 memory_context = "\n".join(
                     [f"- {mem.get('memory', '')}" for mem in filtered_memories]
                 )
+            # if len(filtered_memories) == 0:
+            #     self.callback.send_answer(self.workflow_instance_id, msg="抱歉未找到相关记忆")
 
         # Generate answer
         answer, llm_time, answer_messages = self._generate_answer(
@@ -138,5 +156,6 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
             "answer": answer,
             "relevant_memories": relevant_memories,
             "llm_time": llm_time,
+            "memory_context": memory_context,
             "answer_messages": answer_messages
         }

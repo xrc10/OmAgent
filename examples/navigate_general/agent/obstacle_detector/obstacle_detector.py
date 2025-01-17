@@ -8,10 +8,7 @@ from omagent_core.utils.registry import registry
 from PIL import Image, ImageDraw
 
 PROMPT = """
-你正在帮助盲人导航。请检查红色方框内是否有可能阻挡行走的障碍物。
-- 如果有障碍物，只需简单说明是什么物体，如：桌子、门、人、垃圾桶等
-- 如果没有障碍物，请回复"安全"
-- 只关注影响行走的障碍物，忽略墙上物品、装饰等
+描述红框内的主要物体，5个字以内
 """
 
 @registry.register_worker()
@@ -69,12 +66,11 @@ class ObstacleDetector(BaseWorker, BaseLLMBackend):
         response = self.llm.generate(records=messages)
         description = response["choices"][0]["message"]["content"]
 
-        # Only send message if obstacles are detected
-        if description.strip() != "安全":
-            output_msg = f"{min_depth:.1f}米 {description}" if min_depth else description
-            self.callback.send_answer(
-                self.workflow_instance_id,
-                msg=output_msg
-            )
+        # Always send message with description
+        output_msg = f"{min_depth:.1f}米 {description}" if min_depth else description
+        self.callback.send_answer(
+            self.workflow_instance_id,
+            msg=output_msg
+        )
 
         return {"description": description} 

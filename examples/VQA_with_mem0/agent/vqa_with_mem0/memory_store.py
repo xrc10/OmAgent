@@ -111,6 +111,7 @@ class MemoryStore(BaseWorker, BaseLLMBackend):
                     "user_id": user_id
                 }
             )
+            self.callback.send_answer(self.workflow_instance_id, msg="记忆已记录")
 
         return {
             "store_memory": store_memory,

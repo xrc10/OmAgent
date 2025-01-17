@@ -10,7 +10,7 @@ MEMORY_DECISION_PROMPT = """You are 小欧, an AI assistant created by Om AI to 
 USER_MEMORY_DECISION_PROMPT = """For the given text query, you should:
 1. Analyze if searching memory could be helpful (be generous - if there's any chance past information could be relevant, say yes)
 2. Determine if the image is required for memory search (if memory is needed)
-3. Determine if the image is required to answer the query (regardless of memory)
+3. Determine if the image is required to answer the query (regardless of memory, but be conservative; only say 'No' if you are very confident that the image is not needed)
 4. If no memory and no image is needed and the query is trivial to answer, provide a direct answer using the same language as the query
 
 First provide a brief analysis, then output your decisions in the following strict format:
@@ -57,6 +57,14 @@ Memory required: Yes
 Image required for memory: No
 Image required for answer: No
 Direct query: 昨天食用的食物
+Direct answer: N/A
+
+"我早上9点吃了什么？"
+Analysis: 需要查询特定时间点的饮食记录，不需要图片信息
+Memory required: Yes
+Image required for memory: No
+Image required for answer: No
+Direct query: 早上9点食用的食物
 Direct answer: N/A
 
 "我什么时候买的这支笔？"
@@ -174,9 +182,9 @@ class MemoryDecisionWorker(BaseWorker, BaseLLMBackend):
         else:
             final_decision = "answer_generator"
 
-        # remove the image in stm if not needed
-        if (not image_required_answer) and (not image_required_memory):
-            self.stm(self.workflow_instance_id)["image_cache"] = None
+        # # remove the image in stm if not needed
+        # if (not image_required_answer) and (not image_required_memory):
+        #     self.stm(self.workflow_instance_id)["image_cache"] = None
 
         return {
             "memory_required": memory_required,
