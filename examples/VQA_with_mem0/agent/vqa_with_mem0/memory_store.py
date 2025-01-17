@@ -7,6 +7,12 @@ from .memory_manager import MemoryManager
 
 MEMORY_DECISION_PROMPT = """Analyze the following interaction and decide if it should be stored in memory.
 
+Special handling:
+- If the question contains phrases like "记一下", "记住", "记录" (meaning "remember", "note down", "record"), ALWAYS store the memory
+- If it's a memory request:
+  * For direct information in question (e.g. "记一下我吃了米饭"), extract and store that information
+  * For image-related requests (e.g. "记录图片中的文档"), extract key information from the answer
+
 When storing memories, include key details like:
 - Visual descriptions (color, size, shape, brand)
 - Temporal/contextual information
@@ -18,10 +24,11 @@ Store memories that contain:
 - Important context or relationships
 - Unique/distinctive features
 - Personal information or history
+- ANY information when explicitly asked to remember
 
 Don't store:
-- Simple yes/no answers
-- Subjective opinions
+- Simple yes/no answers (unless explicitly asked to remember)
+- Subjective opinions (unless explicitly asked to remember)
 - Redundant information
 - Generic observations
 
@@ -91,6 +98,9 @@ class MemoryStore(BaseWorker, BaseLLMBackend):
         # Make memory storage decision
         store_memory, memory_content = self.handle_memory(user_instruction, answer, user_id)
 
+        # add user_instruction to memory_content
+        memory_content = "User query: " + user_instruction + "\n" + "Answer: " + answer + "\n" + "Memory content: " + memory_content
+
         # Store memory if needed
         if store_memory and memory_content:
             memory_manager = MemoryManager(user_id=user_id)
@@ -104,5 +114,6 @@ class MemoryStore(BaseWorker, BaseLLMBackend):
 
         return {
             "store_memory": store_memory,
-            "memory_content": memory_content
+            "memory_content": memory_content,
+            "answer": answer
         } 

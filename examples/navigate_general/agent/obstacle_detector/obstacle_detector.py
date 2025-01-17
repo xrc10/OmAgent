@@ -5,6 +5,14 @@ from omagent_core.models.llms.openai_gpt import OpenaiGPTLLM
 from omagent_core.models.llms.schemas import Content, Message
 from omagent_core.utils.general import read_image, encode_image
 from omagent_core.utils.registry import registry
+from PIL import Image, ImageDraw
+
+PROMPT = """
+你正在帮助盲人导航。请检查红色方框内是否有可能阻挡行走的障碍物。
+- 如果有障碍物，只需简单说明是什么物体，如：桌子、门、人、垃圾桶等
+- 如果没有障碍物，请回复"安全"
+- 只关注影响行走的障碍物，忽略墙上物品、装饰等
+"""
 
 @registry.register_worker()
 class ObstacleDetector(BaseWorker, BaseLLMBackend):
@@ -31,16 +39,17 @@ class ObstacleDetector(BaseWorker, BaseLLMBackend):
             Message(
                 role="user", 
                 message_type="text", 
-                content="你正在帮助盲人导航。请只描述最近的或最可能阻挡行走的1-2个障碍物，格式：物体+位置+距离。\n"
-                       "- 只关注影响行走的障碍物（如桌子、椅子、墙、柱子等），忽略墙上物品、装饰等\n"
-                       "- 位置用：偏左/中间/偏右\n"
-                       "- 如果有多个物体，优先描述距离最近或最可能阻挡行走的物体\n"
-                       f"{depth_info}"
+                content=PROMPT
             )
         ]
 
         # Add image
         img = image_cache["<image_0>"]
+        image_obj = read_image(img)
+        # draw a bounding box at the center of the image, middle 30% to 70% of the image height and width
+        draw = ImageDraw.Draw(image_obj)
+        draw.rectangle((image_obj.width * 0.3, image_obj.height * 0.3, image_obj.width * 0.7, image_obj.height * 0.7), outline="red", width=5)
+
         messages.append(
             Message(
                 role="user",
@@ -49,7 +58,7 @@ class ObstacleDetector(BaseWorker, BaseLLMBackend):
                     Content(
                         type="image_url",
                         image_url={
-                            "url": f"data:image/jpeg;base64,{encode_image(read_image(img))}"
+                            "url": f"data:image/jpeg;base64,{encode_image(image_obj)}" # pass the image with bounding box
                         },
                     )
                 ],
@@ -60,10 +69,12 @@ class ObstacleDetector(BaseWorker, BaseLLMBackend):
         response = self.llm.generate(records=messages)
         description = response["choices"][0]["message"]["content"]
 
-        # Send brief description to user
-        self.callback.send_answer(
-            self.workflow_instance_id,
-            msg=f"{description}"
-        )
+        # Only send message if obstacles are detected
+        if description.strip() != "安全":
+            output_msg = f"{min_depth:.1f}米 {description}" if min_depth else description
+            self.callback.send_answer(
+                self.workflow_instance_id,
+                msg=output_msg
+            )
 
         return {"description": description} 

@@ -51,6 +51,7 @@ class InputInterface(BaseWorker):
 
         logging.info(f"User_instruction: {user_instruction}\nImage_path: {image_path}")
         self.stm(self.workflow_instance_id)["user_instruction"] = user_instruction
+        self.stm(self.workflow_instance_id)["image_url"] = image_path
 
         # Load image from file system
         if image_path:
@@ -60,4 +61,4 @@ class InputInterface(BaseWorker):
             image_cache = {"<image_0>": img}
             self.stm(self.workflow_instance_id)["image_cache"] = image_cache
 
-        return {"user_instruction": user_instruction, "user_id": user_id}
+        return {"user_instruction": user_instruction, "user_id": user_id, "image_url": image_path}

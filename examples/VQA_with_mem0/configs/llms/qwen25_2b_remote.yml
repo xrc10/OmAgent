@@ -1,0 +1,6 @@
+name: OpenaiGPTLLM
+model_id: Qwen2-1.5B-Instruct
+api_key: ${env| custom_openai_key, sk-tlktjijivftauscpmcknctcbrnziqmbuoqkfxjjwomnjbgsr}
+endpoint: ${env| custom_openai_endpoint, http://140.207.201.47:6236/v1}
+temperature: 0
+vision: false

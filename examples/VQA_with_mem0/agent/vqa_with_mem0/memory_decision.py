@@ -5,84 +5,109 @@ from omagent_core.models.llms.schemas import Message
 from omagent_core.utils.registry import registry
 import time
 
-MEMORY_DECISION_PROMPT = """You are an AI assistant that helps with visual question answering while maintaining a memory of past interactions. You should lean towards using memory when there's any possibility of relevant past information.
+MEMORY_DECISION_PROMPT = """You are 小欧, an AI assistant created by Om AI to help with visual question answering. You should lean towards using memory when there's any possibility of relevant past information. Pay special attention to demonstrative pronouns like 'this', 'that', '这个', '那个' which usually indicate the current image is needed."""
 
-For the given text query, you should:
-1. Decide if searching memory could be helpful (be generous - if there's any chance past information could be relevant, say yes)
+USER_MEMORY_DECISION_PROMPT = """For the given text query, you should:
+1. Analyze if searching memory could be helpful (be generous - if there's any chance past information could be relevant, say yes)
 2. Determine if the image is required for memory search (if memory is needed)
 3. Determine if the image is required to answer the query (regardless of memory)
-4. If no memory and no image is needed everywhere and the query is trivial to answer, provide a direct answer using the same language as the query
+4. If no memory and no image is needed and the query is trivial to answer, provide a direct answer using the same language as the query
+
+First provide a brief analysis, then output your decisions in the following strict format:
+
+Analysis: <brief explanation of the reasoning>
+Memory required: Yes/No
+Image required for memory: Yes/No/N/A (N/A if memory not required)
+Image required for answer: Yes/No
+Direct query: <memory search query if memory needed and image not required, otherwise N/A>
+Direct answer: <answer if no memory or image needed, otherwise N/A>
 
 Memory should be used when:
 - Query asks about past information (what did I do, when did I see, etc.)
-- Query mentions or implies past time (today, yesterday, before, again, usually, etc.) when asking for information
+- Query mentions or implies past time (today, yesterday, before, again, usually, etc.)
 - Query asks about patterns or frequencies (how often, how many times, etc.)
 - Query compares current with past (is this different, has this changed, etc.)
 - Query refers to user preferences or history (do I like, have I seen, what's my favorite, etc.)
 - Query might benefit from past context (even if not explicitly asked for)
 
+Image is REQUIRED for memory search only when Memory is required, and:
+- Query contains demonstrative pronouns ("这个", "那个", "this", "that", etc.)
+- Query refers to a specific object ("this pen", "this book", "这支笔", etc.)
+- Query needs visual details to identify the correct memory
+- Query combines temporal aspects with visual objects
+- Query needs to match the current object with past observations
+
 Memory should NOT be used when:
-- User is only trying to record new information ("help me remember", "记一下", "记住", etc.)
+- User is trying to record new information (keywords like "记一下", "记住", "remember this", etc.)
 - Making new notes or annotations
 - Setting new preferences or information
+- Asking to describe or analyze the current image only
 
 Image is required for answer when:
 - Query needs to extract information from the current image
 - Query asks about visual details or content in the image
 - Query involves recording or remembering information from the image
 - Query asks to describe, analyze, or understand anything in the image
-
-Image is required for memory search when:
-- Query refers to a specific object ("this pen", "this book", etc.)
-- Query needs visual details to identify the correct memory
-- Query combines temporal aspects with visual objects
-- Query needs to match the current object with past observations
+- Query mentions "图片里", "图中", "in the image", etc.
 
 Examples:
-"What did I eat yesterday?"
--> Memory required: Yes
--> Image required for memory: No
--> Image required for answer: No
--> Query: "food items consumed yesterday"
+"我昨天吃了什么？"
+Analysis: 需要查询过去的饮食记录，不需要图片信息
+Memory required: Yes
+Image required for memory: No
+Image required for answer: No
+Direct query: 昨天食用的食物
+Direct answer: N/A
 
-"When did I buy this pen?"
--> Memory required: Yes
--> Image required for memory: Yes
--> Image required for answer: Yes
--> Reason: Need image details to search memories about this specific pen
+"我什么时候买的这支笔？"
+Analysis: 包含指示代词"这支"，需要图片来确定具体是哪支笔，然后搜索相关购买记录
+Memory required: Yes
+Image required for memory: Yes
+Image required for answer: Yes
+Direct query: N/A
+Direct answer: N/A
 
-"Have I seen anything like this?"
--> Memory required: Yes
--> Image required for memory: Yes
--> Image required for answer: Yes
--> Reason: Need to compare current image with past observations
+"这个东西以前见过吗？"
+Analysis: 包含指示代词"这个"，需要图片来确定具体物品，并与过去记忆比较
+Memory required: Yes
+Image required for memory: Yes
+Image required for answer: Yes
+Direct query: N/A
+Direct answer: N/A
 
-"What is the capital of France?"
--> Memory required: No
--> Image required for memory: N/A
--> Image required for answer: No
--> Direct answer: The capital of France is Paris.
--> Reason: Simple factual question that doesn't need memory or image
+"法国的首都是什么？"
+Analysis: 简单的事实性问题，不需要记忆或图片
+Memory required: No
+Image required for memory: N/A
+Image required for answer: No
+Direct query: N/A
+Direct answer: 法国的首都是巴黎。
 
-"Describe the image"
--> Memory required: No
--> Image required for memory: N/A
--> Image required for answer: Yes
--> Reason: Need to describe the image without using past context
+"描述一下这张图片"
+Analysis: 需要描述图片内容，不需要使用过去记忆
+Memory required: No
+Image required for memory: N/A
+Image required for answer: Yes
+Direct query: N/A
+Direct answer: N/A
 
-"记住这个名片上的所有信息。" (Remember all information on this business card)
--> Memory required: No
--> Image required for memory: N/A
--> Image required for answer: Yes
--> Reason: Need to extract information from the business card image to record it
+"记住这个名片上的所有信息"
+Analysis: 需要从名片图片中提取信息来记录
+Memory required: No
+Image required for memory: N/A
+Image required for answer: Yes
+Direct query: N/A
+Direct answer: N/A
 
-Format your response as:
-MEMORY_REQUIRED: YES/NO
-IMAGE_REQUIRED_MEMORY: YES/NO/N/A
-IMAGE_REQUIRED_ANSWER: YES/NO
-DIRECT_QUERY: <query if memory needed and image not required>
-DIRECT_ANSWER: <answer if no memory or image needed>
-REASON: <brief explanation>"""
+"记一下这个物品"
+Analysis: 需要从图片中提取信息来记录，不需要查询历史记忆
+Memory required: No
+Image required for memory: N/A
+Image required for answer: Yes
+Direct query: N/A
+Direct answer: N/A
+
+Your query is: """
 
 @registry.register_worker()
 class MemoryDecisionWorker(BaseWorker, BaseLLMBackend):
@@ -94,7 +119,7 @@ class MemoryDecisionWorker(BaseWorker, BaseLLMBackend):
         # Make decision based on text only
         decision_messages = [
             Message(role="system", message_type="text", content=MEMORY_DECISION_PROMPT),
-            Message(role="user", message_type="text", content=user_instruction)
+            Message(role="user", message_type="text", content=USER_MEMORY_DECISION_PROMPT + user_instruction)
         ]
 
         # Time the LLM API call
@@ -118,18 +143,18 @@ class MemoryDecisionWorker(BaseWorker, BaseLLMBackend):
         reason = None
 
         for line in lines:
-            if line.startswith('MEMORY_REQUIRED:'):
-                memory_required = 'YES' in line
-            elif line.startswith('IMAGE_REQUIRED_MEMORY:'):
-                image_required_memory = 'YES' in line
-            elif line.startswith('IMAGE_REQUIRED_ANSWER:'):
-                image_required_answer = 'YES' in line
-            elif line.startswith('DIRECT_QUERY:'):
-                direct_query = line.split(':', 1)[1].strip()
-            elif line.startswith('DIRECT_ANSWER:'):
-                direct_answer = line.split(':', 1)[1].strip()
-            elif line.startswith('REASON:'):
+            if line.startswith('Analysis:'):
                 reason = line.split(':', 1)[1].strip()
+            elif line.startswith('Memory required:'):
+                memory_required = 'yes' in line.lower()
+            elif line.startswith('Image required for memory:'):
+                image_required_memory = 'yes' in line.lower()
+            elif line.startswith('Image required for answer:'):
+                image_required_answer = 'yes' in line.lower()
+            elif line.startswith('Direct query:'):
+                direct_query = line.split(':', 1)[1].strip()
+            elif line.startswith('Direct answer:'):
+                direct_answer = line.split(':', 1)[1].strip()
 
         input_has_image = self.stm(self.workflow_instance_id).get("image_cache", None) is not None
 
@@ -163,5 +188,6 @@ class MemoryDecisionWorker(BaseWorker, BaseLLMBackend):
             "final_answer": direct_answer if not memory_required and not image_required_answer else None,
             "reason": reason,
             "final_decision": final_decision,
-            "llm_time": elapsed_time
+            "llm_time": elapsed_time,
+            "decision_response": decision_response
         }

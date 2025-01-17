@@ -1,3 +1,4 @@
 name: VQAAnswerGenerator
 # llm: ${sub|doubao_vision_lite}
-llm: ${sub|fk77_dpo}
+# llm: ${sub|fk77_dpo}
+llm: ${sub|intern25_vl_1b_remote}

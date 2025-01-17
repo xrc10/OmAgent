@@ -81,7 +81,7 @@ class OpenaiGPTLLM(BaseLLM):
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
                 response_format=body.get("response_format", None),
-                tools=body.get("tools", None),
+                # tools=body.get("tools", None),
                 stream=self.stream,
             )
         if self.stream:
@@ -116,7 +116,7 @@ class OpenaiGPTLLM(BaseLLM):
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
                 response_format=body.get("response_format", None),
-                tools=body.get("tools", None),
+                # tools=body.get("tools", None),
             )
         res = res.model_dump()
         body.update({"response": res})

@@ -8,16 +8,23 @@ from time import time
 
 SYSTEM_PROMPT = """You are a helpful AI assistant that generates clear and specific search queries."""
 
-USER_PROMPT = """Given the user's question and the image, generate a clear and specific query to search in memory.
+USER_PROMPT = """Given the user's question and the image, first briefly describe the key details of the image, then generate a clear and specific query to search in memory. If the user's question is in Chinese, respond in Chinese.
 
 Examples:
-Q: "Did I eat this before?" (with image of pizza)
--> Query: "previous instances of eating pizza"
+User question: Did I eat this before?
+IMAGE: A round pizza with cheese and pepperoni toppings on a wooden serving board.
+SEARCH_QUERY: previous instances of eating pepperoni pizza
 
-Q: "Have I been to this place?" (with image of park)
--> Query: "visits to this park with green benches and fountain"
+User question: 这个我以前吃过吗？
+IMAGE: 一个10寸的芝士披萨，表面铺满了融化的马苏里拉奶酪。
+SEARCH_QUERY: 之前吃芝士披萨的记录
 
-Format your response as:
+User question: 我什么时候买的这个？
+IMAGE: 一个棕色的中号皮包，有金色的金属扣件和长肩带。
+SEARCH_QUERY: 购买棕色中号皮包的时间记录
+
+Format your response with:
+IMAGE: <brief description of the key details in the image>
 SEARCH_QUERY: <your specific search query>
 
 User question: {user_instruction}"""
@@ -51,6 +58,8 @@ class MultimodalQueryGenerator(BaseWorker, BaseLLMBackend):
                     ],
                 )
             )
+        else:
+            raise ValueError("Image cache is None, please check the image_cache in STM")
 
         # Time the LLM API call
         start_time = time()
@@ -65,9 +74,15 @@ class MultimodalQueryGenerator(BaseWorker, BaseLLMBackend):
                 search_query = line.split(':', 1)[1].strip()
                 break
 
-        # store the query in the STM if exists
+        # store both image description and query in the STM if exists
         if search_query:
             self.stm(self.workflow_instance_id)["memory_search_query"] = search_query
+            # Store image description if present
+            for line in query_response.split('\n'):
+                if line.startswith('IMAGE:'):
+                    image_description = line.split(':', 1)[1].strip()
+                    self.stm(self.workflow_instance_id)["image_description"] = image_description
+                    break
         else:
             # use the user instruction as the query
             search_query = user_instruction
@@ -75,5 +90,7 @@ class MultimodalQueryGenerator(BaseWorker, BaseLLMBackend):
 
         return {
             "memory_search_query": search_query,
-            "llm_time": llm_time
+            "llm_time": llm_time,
+            "image_description": image_description,
+            "query_response": query_response
         }

@@ -1,3 +1,4 @@
 name: MemoryDecisionWorker
 # llm: ${sub|doubao_lite}
-llm: ${sub|qwen25_7b_sf}
+# llm: ${sub|qwen25_7b_sf}
+llm: ${sub|qwen25_2b_remote}
