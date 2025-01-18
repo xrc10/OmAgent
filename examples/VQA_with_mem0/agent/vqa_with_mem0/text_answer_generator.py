@@ -6,7 +6,7 @@ from omagent_core.utils.registry import registry
 import time
 from datetime import datetime
 
-THRESHOLD = 0.5
+THRESHOLD = 0.45
 
 SYSTEM_PROMPT = """你是小欧，一个由 Om AI 创建的 AI 助手。请始终基于可用信息提供有帮助、准确和简洁的回答。"""
 
@@ -18,9 +18,7 @@ GENERAL_PROMPT = """
 
 2. 始终使用中文回答
 
-3. 考虑当前上下文 - 日期/时间：{datetime}
-
-{memory_section}
+{datetime_section}{memory_section}
 
 问题：{user_instruction}"""
 
@@ -66,6 +64,7 @@ class TextAnswerGenerator(BaseWorker, BaseLLMBackend):
             relevant_memories = memory_search_results.get("relevant_memories", None)
 
             memory_section = ""
+            datetime_section = ""
             if relevant_memories:
                 filtered_memories = [mem for mem in relevant_memories if mem.get("score", 0) >= THRESHOLD]
                 if filtered_memories:
@@ -73,11 +72,12 @@ class TextAnswerGenerator(BaseWorker, BaseLLMBackend):
                         [f"- {mem.get('memory', '')}" for mem in filtered_memories]
                     )
                     memory_section = MEMORY_CONTEXT_SECTION.format(memory_context=memory_context)
+                    datetime_section = "3. 考虑当前上下文 - 日期/时间：{datetime}\n".format(datetime=current_datetime)
             
             formatted_instruction = GENERAL_PROMPT.format(
                 user_instruction=user_instruction,
                 memory_section=memory_section,
-                datetime=current_datetime
+                datetime_section=datetime_section
             )
 
         messages = [

@@ -11,36 +11,20 @@ class MemoryDecisionWorker(BaseWorker):
         super().__init__(*args, **kwargs)
         # Keywords indicating memory search is needed
         self.memory_keywords = {
-            'chinese': [
-                '以前', '之前', '过去', '上次', '记得', '还记得', '又', '再次',
-                '通常', '经常', '总是', '一般', '平时', '习惯',
-                '昨天', '今天', '刚才', '刚刚', '前天',
-                '喜欢', '最爱', '最喜欢'
-            ],
-            'english': [
-                'before', 'previous', 'past', 'last time', 'remember', 'recall',
-                'again', 'usually', 'often', 'always', 'normally', 'typically',
-                'yesterday', 'today', 'just now', 'earlier',
-                'favorite', 'like', 'prefer'
-            ]
+            'chinese': ['想一下', '想下'],
+            'english': ['think about', 'recall']
         }
 
         # Keywords indicating image is needed
         self.image_keywords = {
-            'chinese': [
-                '这个', '那个', '此', '该', '图中', '图片里', '照片中',
-                '看', '显示', '描述', '记录'
-            ],
-            'english': [
-                'this', 'that', 'these', 'those', 'here', 'shown',
-                'image', 'picture', 'photo', 'see', 'look', 'describe'
-            ]
+            'chinese': ['看一下', '看下'],
+            'english': ['look at', 'check']
         }
 
         # Keywords indicating storing new information
         self.store_keywords = {
-            'chinese': ['记一下', '记住', '记录', '保存'],
-            'english': ['note', 'save', 'store', 'remember this']
+            'chinese': ['记一下', '记下'],
+            'english': ['note down', 'remember']
         }
 
     def is_chinese(self, text):

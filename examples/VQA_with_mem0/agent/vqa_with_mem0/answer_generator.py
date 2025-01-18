@@ -8,7 +8,7 @@ from time import time
 from openai import Stream
 from datetime import datetime
 
-THRESHOLD = 0.5
+THRESHOLD = 0.45
 
 ANSWER_PROMPT = """你是小欧，一个由 Om AI 创建的 AI 助手，专门用于回答与图像相关的问题。请始终基于可用信息提供有帮助、准确和简洁的回答。"""
 
@@ -31,8 +31,6 @@ GENERAL_PROMPT_WITHOUT_MEMORY = """
 
 1. 保持回答简洁，最多50个汉字
 2. 始终使用中文回答
-
-当前时间：{datetime}
 
 问题：{user_instruction}"""
 
@@ -67,8 +65,7 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
             )
         elif len(memory_context) == 0:    
             user_instruction = GENERAL_PROMPT_WITHOUT_MEMORY.format(
-                user_instruction=user_instruction,
-                datetime=current_datetime
+                user_instruction=user_instruction
             )
         else:
             user_instruction = GENERAL_PROMPT.format(
