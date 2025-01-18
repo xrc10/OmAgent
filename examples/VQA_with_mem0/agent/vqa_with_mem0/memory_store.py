@@ -92,17 +92,12 @@ class MemoryStore(BaseWorker, BaseLLMBackend):
         if not answer:
             return {"store_memory": False, "memory_content": None}
 
-        # Get user_id from STM
         user_id = self.stm(self.workflow_instance_id).get("user_id", "default_user")
 
-        # Make memory storage decision
-        store_memory, memory_content = self.handle_memory(user_instruction, answer, user_id)
+        if self.stm(self.workflow_instance_id).get("is_store_request", False):
+            # add user_instruction to memory_content
+            memory_content = "User query: " + user_instruction + "\n" + "Answer: " + answer
 
-        # add user_instruction to memory_content
-        memory_content = "User query: " + user_instruction + "\n" + "Answer: " + answer + "\n" + "Memory content: " + memory_content
-
-        # Store memory if needed
-        if store_memory and memory_content:
             memory_manager = MemoryManager(user_id=user_id)
             memory_manager.add_memory(
                 memory_content,
@@ -111,10 +106,12 @@ class MemoryStore(BaseWorker, BaseLLMBackend):
                     "user_id": user_id
                 }
             )
-            self.callback.send_answer(self.workflow_instance_id, msg="记忆已记录")
+            # self.callback.send_answer(self.workflow_instance_id, msg="记忆已记录")
 
-        return {
-            "store_memory": store_memory,
-            "memory_content": memory_content,
-            "answer": answer
-        } 
+            return {
+                "store_memory": True,
+                "memory_content": memory_content,
+                "answer": answer
+            }
+
+        

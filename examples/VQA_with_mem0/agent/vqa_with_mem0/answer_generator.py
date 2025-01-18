@@ -12,53 +12,40 @@ THRESHOLD = 0.5
 
 ANSWER_PROMPT = """你是小欧，一个由 Om AI 创建的 AI 助手，专门用于回答与图像相关的问题。请始终基于可用信息提供有帮助、准确和简洁的回答。"""
 
-USER_PROMPT = """
-请根据提供的图片和/或记忆回答以下问题。重要指引：
+GENERAL_PROMPT = """
+请根据提供的图片和相关记忆回答问题。重要指引：
 
-1. 关于记忆：只使用与当前问题直接相关的信息，忽略任何不相关的记忆。
-
-2. 识别问题类型：
-   a. 对于关于过去事件/购买的问题（例如"我什么时候买过这个？"，"这个东西是什么时候买的？"）：
-      - 查找包含日期/时间的相关记忆
-      - 如果没有找到相关记忆：
-        - 回答"抱歉，我没有找到相关的记录"或"我的记忆中没有这个信息"
-   
-   b. 对于记忆存储请求：
-      - 如果提供了图片并要求记住（如"记一下图片内容"或"记住我吃了这个药"）：
-        - 首先简洁描述图片的主要内容
-        - 以确认结束：
-          - 回答"好的，我记住了"或"明白了"
-      
-      - 如果没有图片但要求记住文字/信息：
-        - 简单回答"好的，记住了"或"明白了"
-
-3. 保持回答简洁：
-   - 回答最多50个汉字
-   - 对于图片记忆请求：先简要描述图片内容，然后确认
-   - 对于文字记忆请求：只需简短确认
-
-4. 始终使用中文回答
-
-5. 考虑当前上下文 - 日期/时间：{datetime}
+1. 保持回答简洁，最多50个汉字
+2. 如果问题涉及过去的事件/购买，且没有找到相关记忆，请回答"抱歉，我没有找到相关的记录"
+3. 始终使用中文回答
 
 相关记忆：
 {memory_context}
 
+当前时间：{datetime}
+
 问题：{user_instruction}"""
 
-USER_PROMPT_WITHOUT_MEMORY = """
-根据当前图片回答问题，满足以下条件：
+GENERAL_PROMPT_WITHOUT_MEMORY = """
+请根据提供的图片回答问题。重要指引：
 
-1. 保持回答简洁：
-   - 回答最多50个汉字
-   - 对于图片记忆请求：先简要描述图片内容，然后确认
-   - 对于文字记忆请求：只需简短确认
-
+1. 保持回答简洁，最多50个汉字
 2. 始终使用中文回答
 
-3. 考虑当前上下文的日期/时间：{datetime}
+当前时间：{datetime}
 
 问题：{user_instruction}"""
+
+MEMORY_STORE_PROMPT = """请根据图片内容创建一条简短的记忆记录。要求：
+
+1. 用20字以内简洁描述图片的主要内容
+2. 记录时间：{datetime}
+
+记忆请求：{user_instruction}
+
+请按以下格式回复：
+[图片的内容]
+好的，我已经记住了。"""
 
 @registry.register_worker()
 class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
@@ -70,10 +57,25 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
         # Get current datetime
         current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        if len(memory_context) == 0:    
-            user_instruction = USER_PROMPT_WITHOUT_MEMORY.format(user_instruction=user_instruction, datetime=current_datetime)
+        # Check if this is a memory store request
+        is_store_request = self.stm(self.workflow_instance_id).get("is_store_request", False)
+        
+        if is_store_request:
+            user_instruction = MEMORY_STORE_PROMPT.format(
+                user_instruction=user_instruction,
+                datetime=current_datetime
+            )
+        elif len(memory_context) == 0:    
+            user_instruction = GENERAL_PROMPT_WITHOUT_MEMORY.format(
+                user_instruction=user_instruction,
+                datetime=current_datetime
+            )
         else:
-            user_instruction = USER_PROMPT.format(user_instruction=user_instruction, memory_context=memory_context, datetime=current_datetime)
+            user_instruction = GENERAL_PROMPT.format(
+                user_instruction=user_instruction,
+                memory_context=memory_context,
+                datetime=current_datetime
+            )
 
         answer_messages = [
             Message(role="system", message_type="text", content=ANSWER_PROMPT),

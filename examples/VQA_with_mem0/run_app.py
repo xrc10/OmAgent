@@ -66,20 +66,27 @@ task4_1 = simple_task(
 
 # Split answer generator into three tasks
 task5_0 = simple_task(
-    task_def_name="VQAAnswerGenerator",
-    task_reference_name="answer_generator0",
+    task_def_name="TextAnswerGenerator",
+    task_reference_name="text_answer_generator0",
     inputs={"user_instruction": task1.output("user_instruction")},
 )
 
 task5_1 = simple_task(
-    task_def_name="VQAAnswerGenerator",
-    task_reference_name="answer_generator1",
+    task_def_name="TextAnswerGenerator",
+    task_reference_name="text_answer_generator1",
     inputs={"user_instruction": task1.output("user_instruction")},
 )
 
 task5_2 = simple_task(
     task_def_name="VQAAnswerGenerator",
-    task_reference_name="answer_generator2",
+    task_reference_name="vqa_answer_generator1",
+    inputs={"user_instruction": task1.output("user_instruction")},
+)
+
+# Add new task for text answer generator
+task5_3 = simple_task(
+    task_def_name="TextAnswerGenerator",
+    task_reference_name="text_answer_generator2",
     inputs={"user_instruction": task1.output("user_instruction")},
 )
 
@@ -107,6 +114,13 @@ task7_2 = simple_task(
     inputs={"user_instruction": task1.output("user_instruction")},
 )
 
+# Add memory store task for text answers
+task7_3 = simple_task(
+    task_def_name="MemoryStore",
+    task_reference_name="memory_store3",
+    inputs={"user_instruction": task1.output("user_instruction")},
+)
+
 # Create switch task for routing based on memory_decision output
 switch_task = SwitchTask(
     task_ref_name="memory_decision_switch",
@@ -117,7 +131,7 @@ switch_task = SwitchTask(
 switch_task.switch_case("multimodal_query_generator", [task3, task4_0, task5_0, task7_0])
 switch_task.switch_case("memory_search", [task4_1, task5_1, task7_1])
 switch_task.switch_case("answer_generator", [task5_2, task7_2])
-switch_task.switch_case("output_formatter", [task6])
+switch_task.switch_case("text_answer_generator", [task5_3, task7_3])
 
 # Connect workflow
 workflow >> task1 >> task2 >> switch_task
