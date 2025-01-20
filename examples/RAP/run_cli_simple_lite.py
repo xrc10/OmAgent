@@ -86,4 +86,4 @@ workflow.register(overwrite=True)
 config_path = CURRENT_PATH.joinpath('configs')
 cli_client = DefaultClient(interactor=workflow, config_path=config_path, workers=[SimpleInput()])
 # Change start_interactor to start_interaction for lite version
-cli_client.start_interaction()
+cli_client.start_interactor()
