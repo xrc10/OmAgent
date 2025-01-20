@@ -1,0 +1,33 @@
+{
+    "name": "cot",
+    "tasks": [
+        {
+            "name": "SimpleInput",
+            "taskReferenceName": "input_interface",
+            "inputParameters": {},
+            "type": "SIMPLE",
+            "taskDefinition": {}
+        },
+        {
+            "name": "CoTReasoning",
+            "taskReferenceName": "CoT_Reasoning",
+            "inputParameters": {
+                "id": 0,
+                "query": "${input_interface.output.query}",
+                "cot_method": "${input_interface.output.cot_method}",
+                "cot_examples": "${input_interface.output.cot_examples}"
+            },
+            "type": "SIMPLE",
+            "taskDefinition": {}
+        }
+    ],
+    "inputParameters": [],
+    "outputParameters": {},
+    "failureWorkflow": "",
+    "schemaVersion": 2,
+    "workflowStatusListenerEnabled": false,
+    "ownerEmail": "default@omagent.ai",
+    "timeoutSeconds": 60,
+    "variables": {},
+    "inputTemplate": {}
+}

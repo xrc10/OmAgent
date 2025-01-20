@@ -2,8 +2,8 @@
     "name": "RAP",
     "tasks": [
         {
-            "name": "SimpleRAPInput",
-            "taskReferenceName": "input_task",
+            "name": "SimpleInput",
+            "taskReferenceName": "input_interface",
             "inputParameters": {},
             "type": "SIMPLE",
             "taskDefinition": {}
