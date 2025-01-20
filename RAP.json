@@ -3,67 +3,71 @@
     "tasks": [
         {
             "name": "SimpleInput",
-            "taskReferenceName": "input_interface",
+            "taskReferenceName": "input_task",
             "inputParameters": {},
             "type": "SIMPLE",
             "taskDefinition": {}
         },
         {
-            "name": "Selection",
-            "taskReferenceName": "selection",
-            "inputParameters": {},
-            "type": "SIMPLE",
-            "taskDefinition": {}
-        },
-        {
-            "name": "Expansion",
-            "taskReferenceName": "expansion",
-            "inputParameters": {},
-            "type": "SIMPLE",
-            "taskDefinition": {}
-        },
-        {
-            "name": "SimulationPreProcess",
-            "taskReferenceName": "simulation_preprocess",
-            "inputParameters": {},
-            "type": "SIMPLE",
-            "taskDefinition": {}
-        },
-        {
-            "name": "simulation_loop",
-            "taskReferenceName": "simulation_loop",
+            "name": "mcts_loop",
+            "taskReferenceName": "mcts_loop",
             "inputParameters": {},
             "type": "DO_WHILE",
             "taskDefinition": {},
-            "loopCondition": "if ($.simulation_postprocess[\"finish\"] == true){false;} else {true;} ",
+            "loopCondition": "if ($.mcts_completion_check[\"finish\"] == true){false;} else {true;} ",
             "loopOver": [
                 {
-                    "name": "Expansion",
-                    "taskReferenceName": "expansion2",
+                    "name": "Selection",
+                    "taskReferenceName": "selection",
                     "inputParameters": {},
                     "type": "SIMPLE"
                 },
                 {
-                    "name": "SimulationPostProcess",
-                    "taskReferenceName": "simulation_postprocess",
+                    "name": "Expansion",
+                    "taskReferenceName": "expansion",
+                    "inputParameters": {},
+                    "type": "SIMPLE"
+                },
+                {
+                    "name": "SimulationPreProcess",
+                    "taskReferenceName": "simulation_preprocess",
+                    "inputParameters": {},
+                    "type": "SIMPLE"
+                },
+                {
+                    "name": "simulation_loop",
+                    "taskReferenceName": "simulation_loop",
+                    "inputParameters": {},
+                    "type": "DO_WHILE",
+                    "loopCondition": "if ($.simulation_postprocess[\"finish\"] == true){false;} else {true;} ",
+                    "loopOver": [
+                        {
+                            "name": "Expansion",
+                            "taskReferenceName": "expansion2",
+                            "inputParameters": {},
+                            "type": "SIMPLE"
+                        },
+                        {
+                            "name": "SimulationPostProcess",
+                            "taskReferenceName": "simulation_postprocess",
+                            "inputParameters": {},
+                            "type": "SIMPLE"
+                        }
+                    ]
+                },
+                {
+                    "name": "BackPropagation",
+                    "taskReferenceName": "back_propagation",
+                    "inputParameters": {},
+                    "type": "SIMPLE"
+                },
+                {
+                    "name": "MCTSCompletionCheck",
+                    "taskReferenceName": "mcts_completion_check",
                     "inputParameters": {},
                     "type": "SIMPLE"
                 }
             ]
-        },
-        {
-            "name": "BackPropagation",
-            "taskReferenceName": "back_propagation",
-            "inputParameters": {},
-            "type": "SIMPLE",
-            "taskDefinition": {}
-        },
-        {
-            "name": "MCTSCompletionCheck",
-            "taskReferenceName": "mcts_completion_check",
-            "inputParameters": {},
-            "type": "SIMPLE",
-            "taskDefinition": {}
         },
         {
             "name": "OutputInterface",
