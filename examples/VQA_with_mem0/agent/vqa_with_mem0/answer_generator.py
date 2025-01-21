@@ -16,7 +16,7 @@ GENERAL_PROMPT = """
 请根据提供的图片和相关记忆回答问题。重要指引：
 
 1. 保持回答简洁，最多50个汉字
-2. 如果问题涉及过去的事件/购买，且没有找到相关记忆，请回答"抱歉，我没有找到相关的记录"
+2. 如果问题涉及过去的事件，且没有找到相关记忆，请回答"抱歉，我没有找到相关的记录"
 3. 始终使用中文回答
 
 相关记忆：
@@ -27,22 +27,19 @@ GENERAL_PROMPT = """
 问题：{user_instruction}"""
 
 GENERAL_PROMPT_WITHOUT_MEMORY = """
-请根据提供的图片回答问题。重要指引：
-
-1. 保持回答简洁，最多50个汉字
-2. 始终使用中文回答
+请根据提供的图片回答问题。始终使用中文回答。
 
 问题：{user_instruction}"""
 
 MEMORY_STORE_PROMPT = """请根据图片内容创建一条简短的记忆记录。要求：
 
-1. 用20字以内简洁描述图片的主要内容
-2. 记录时间：{datetime}
+1. 结合图片，用20字以内简洁描述需要记忆的内容
+2. 如果存在相对时间，例如“昨天”，请参考当前时间：{datetime}
 
 记忆请求：{user_instruction}
 
 请按以下格式回复：
-[图片的内容]
+[复述记忆内容]
 好的，我已经记住了。"""
 
 @registry.register_worker()
@@ -134,7 +131,8 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
                 memory_context = "\n".join(
                     [f"- {mem.get('memory', '')}" for mem in filtered_memories]
                 )
-            # if len(filtered_memories) == 0:
+            if len(filtered_memories) == 0:
+                memory_context = "没有找到相关的记录"
             #     self.callback.send_answer(self.workflow_instance_id, msg="抱歉未找到相关记忆")
 
         # Generate answer

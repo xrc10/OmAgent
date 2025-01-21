@@ -37,7 +37,7 @@ class ObstacleSwitch(BaseWorker):
         else:
             self.callback.send_answer(
                 self.workflow_instance_id,
-                msg="未检测到障碍物"
+                msg="未检测到事物"
             )
 
         return {

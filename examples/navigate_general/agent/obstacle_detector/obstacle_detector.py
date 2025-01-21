@@ -8,7 +8,7 @@ from omagent_core.utils.registry import registry
 from PIL import Image, ImageDraw
 
 PROMPT = """
-描述红框内的主要物体，5个字以内
+仅描述红框内主要物体，限6字内
 """
 
 @registry.register_worker()

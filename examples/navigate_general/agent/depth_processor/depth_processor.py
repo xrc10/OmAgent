@@ -7,7 +7,7 @@ from omagent_core.utils.registry import registry
 # API_KEY = '_meCERCZI4jhim5zm5Jh0yScxtTSGKFqWei2G0-boS0'
 # API_URL = 'http://140.207.201.47:8085/predict'
 
-API_KEY = 'u3cji4Air8VFFams1cps2qQ-3tThLPNpncyIXhdBnZE'
+API_KEY = 'mgs6PO2aPs4QvIQSsOMSdeZU7UnEVVPFM8vlfz3IaXw'
 API_URL = 'http://140.207.201.47:8087/predict'
 
 @registry.register_worker()
