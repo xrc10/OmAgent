@@ -85,6 +85,7 @@ class TextAnswerGenerator(BaseWorker, BaseLLMBackend):
             Message(role="user", message_type="text", content=formatted_instruction)
         ]
 
+        self.llm.use_default_sys_prompt = False
         start_time = time.time()
         response = self.llm.generate(records=messages)
         llm_time = time.time() - start_time

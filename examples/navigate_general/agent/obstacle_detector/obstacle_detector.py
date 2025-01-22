@@ -63,6 +63,7 @@ class ObstacleDetector(BaseWorker, BaseLLMBackend):
         )
 
         # Get LLM response
+        self.llm.use_default_sys_prompt = False
         response = self.llm.generate(records=messages)
         description = response["choices"][0]["message"]["content"]
 

@@ -94,8 +94,9 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
                 ),
             )
 
-        start_time = time()
         self.llm.stream = False
+        self.llm.use_default_sys_prompt = False
+        start_time = time()
         response = self.llm.generate(records=answer_messages)
         llm_time = time() - start_time
 
