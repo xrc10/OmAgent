@@ -21,7 +21,6 @@ registry.import_module(CURRENT_PATH.joinpath("agent"))
 
 # Load container configuration and set STM
 container.register_stm("SharedMemSTM")
-container.from_config(CURRENT_PATH.joinpath("container.yaml"))
 
 # Initialize RAP workflow with lite_version=True
 workflow = ConductorWorkflow(name="rap_workflow", lite_version=True)
@@ -42,7 +41,6 @@ conclude_task = simple_task(
     task_def_name=Conclude,
     task_reference_name="task_conclude",
     inputs={
-        "rap_structure": rap_workflow.rap_structure,
         "final_answer": rap_workflow.final_answer,
     },
 )
@@ -53,16 +51,11 @@ workflow >> client_input_task >> rap_workflow >> conclude_task
 # Register workflow with overwrite=True for lite version
 workflow.register(overwrite=True)
 
-# Define supported tasks
-SUPPORT_TASK = {
-    'math': "Please input your math problem:"
-}
-
 # Initialize and start CLI client
 config_path = CURRENT_PATH.joinpath("configs")
 cli_client = DefaultClient(
     interactor=workflow, 
     config_path=config_path, 
-    workers=[InputInterface()]
+    workers=[InputInterface(), Conclude()]
 )
 cli_client.start_interactor() 

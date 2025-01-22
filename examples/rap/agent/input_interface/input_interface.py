@@ -1,25 +1,27 @@
 from omagent_core.engine.worker.base import BaseWorker
 from omagent_core.utils.registry import registry
 
+# Define supported tasks
+SUPPORTED_TASKS = {
+    'math': "Please input your math problem:"
+}
+
 @registry.register_worker()
 class InputInterface(BaseWorker):
     """Input interface processor that handles user queries."""
 
     def _run(self, query=None, *args, **kwargs):
         # Get task selection from user
-        task = input(f'\nWelcome to use OmAgent RAP Algorithm, please input the task you want to conduct. Choices: {list(SUPPORT_TASK.keys())} ')
+        task = input(f'\nWelcome to OmAgent RAP! Please select a task type: {list(SUPPORTED_TASKS.keys())} ')
         
-        if task not in SUPPORT_TASK:
-            raise NotImplementedError
+        if task not in SUPPORTED_TASKS:
+            raise ValueError(f"Unsupported task type: {task}. Must be one of {list(SUPPORTED_TASKS.keys())}")
         
         self.stm(self.workflow_instance_id)['task'] = task 
 
         # Use query parameter if provided, otherwise get user input
-        data_input = query if query else input(SUPPORT_TASK[task])
+        data_input = query if query else input(SUPPORTED_TASKS[task])
         
-        # For debug
-        if data_input == 'x':
-            data_input = "Henry and 3 of his friends order 7 pizzas for lunch. Each pizza is cut into 8 slices. If Henry and his friends want to share the pizzas equally, how many slices can each of them have?"
-        
+        # Store input in STM and return
         self.stm(self.workflow_instance_id)['data_input'] = data_input
         return {"query": data_input} 

@@ -2,7 +2,7 @@
 
 RAP is a workflow operator that performs reasoning by treating it as a planning problem with a world model. It uses Monte Carlo Tree Search (MCTS) to explore the reasoning space and find high-reward reasoning paths.
 
-You can refer to the example in the `examples/rap` directory to understand how to use this operator.
+Refer to the example in the `examples/rap` directory to understand how to use this operator.
 
 ## Overview
 
@@ -22,29 +22,20 @@ The algorithm uses MCTS to strategically explore the vast reasoning space with a
 ### Outputs:
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| rap_structure | dict | The tree structured data of the reasoning process |
 | final_answer | str | The final answer/solution to the query |
 
 ### Configs:
-The config of the RAP operator should be defined in a rap_workflow.yml file:
+The config of the RAP operator should be defined in a `rap_workflow.yml` file:
 
 ```yml
 - name: InputInterface
-  llm: ${sub|gpt}
 - name: Selection 
-  llm: ${sub|gpt}
 - name: Expansion
   llm: ${sub|gpt}
 - name: SimulationPreProcess
-  llm: ${sub|gpt}
 - name: SimulationPostProcess
-  llm: ${sub|gpt}
 - name: BackPropagation
-  llm: ${sub|gpt}
 - name: MCTSCompletionCheck
-  llm: ${sub|gpt}
-- name: OutputInterface
-  llm: ${sub|gpt}
 ```
 
 ## References

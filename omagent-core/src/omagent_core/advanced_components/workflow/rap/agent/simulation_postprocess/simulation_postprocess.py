@@ -10,14 +10,16 @@ from pydantic import Field
 CURRENT_PATH = Path(__file__).parents[0]
 
 @registry.register_worker()
-class SimulationPostProcess(BaseLLMBackend, BaseWorker):
+class SimulationPostProcess(BaseWorker):
     """Simulation post-process worker that handles simulation results"""
 
     def _run(self, *args, **kwargs):
+        depth_limit = kwargs.get('depth_limit', 5)
+
         node = self.stm(self.workflow_instance_id)['selected_path'][-1]
         
         # Check if we should finish simulation
-        if node.depth >= DEPTH_LIMIT or node.children is None:
+        if node.depth >= depth_limit or node.children is None:
             self.stm(self.workflow_instance_id)['in_simulation'] = False
             self.callback.send_answer(
                 self.workflow_instance_id, 

@@ -10,7 +10,7 @@ from pydantic import Field
 CURRENT_PATH = Path(__file__).parents[0]
 
 @registry.register_worker()
-class BackPropagation(BaseLLMBackend, BaseWorker):
+class BackPropagation(BaseWorker):
     """Back propagation worker that updates node values"""
 
     def _run(self, *args, **kwargs):

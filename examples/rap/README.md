@@ -2,71 +2,63 @@
 
 This example demonstrates how to use the RAP (Reasoning via Planning) operator for complex reasoning tasks. The RAP operator treats reasoning as a planning problem and uses Monte Carlo Tree Search (MCTS) to explore reasoning paths.
 
+> **Note**: RAP currently only supports the lite version because Conductor cannot handle nested loops (loops inside loops) which are required for the MCTS algorithm.
+
 ## Overview
 
-The example implements a RAP workflow that consists of the following components:
+The example implements a RAP workflow with three main components:
 
 1. **Input Interface**
-   - Handles user input containing reasoning queries
+   - Handles user input for math problems
+   - Provides a simple CLI interface
 
 2. **RAP Workflow**
    - Uses MCTS to explore reasoning paths
-   - Leverages a language model as both world model and reasoning agent
-   - Finds high-reward reasoning paths
+   - Leverages a language model for reasoning
+   - Finds optimal solution paths
 
 3. **Conclude Task**
-   - Provides final answer based on the reasoning process
-
-### Workflow Diagram:
-
-![RAP Workflow](./docs/images/rap_workflow_diagram.png)
+   - Extracts and formats the final answer
+   - Presents results to the user
 
 ## Prerequisites
 
-- Python 3.10+
-- Required packages installed (see requirements.txt)
-- Access to OpenAI API or compatible endpoint (see configs/llms/*.yml)
-- Redis server running locally or remotely
-- Conductor server running locally or remotely
+- Access to OpenAI API or compatible endpoint
 
-## Configuration
+## Setup
 
-1. Generate the container.yaml file:
-   ```bash
-   python compile_container.py
-   ```
-
-2. Configure your LLM settings in `configs/llms/*.yml`:
-   ```bash
-   export custom_openai_key="your_openai_api_key"
-   export custom_openai_endpoint="your_openai_endpoint"
-   ```
-
-3. Update settings in the generated `container.yaml`:
-   - Modify Redis connection settings
-   - Update the Conductor server URL
-   - Adjust any other component settings as needed
+Configure environment variables:
+```bash
+export custom_openai_key="your_openai_api_key"
+export custom_openai_endpoint="your_openai_endpoint"  # Optional: defaults to https://api.openai.com/v1
+```
 
 ## Running the Example
 
-For terminal/CLI usage:
+Only the lightweight version is supported:
 ```bash
-python run_cli.py
+python run_cli_lite.py
 ```
 
-For app/GUI usage:
-```bash
-python run_app.py
-```
+The CLI will prompt you to:
+1. Select a task type (currently supports 'math')
+2. Enter your problem/question
 
-For lite version:
-```bash
-python run_lite.py
-```
+## Configuration Files
 
-## Example Usage
+- `configs/llms/gpt.yml`: LLM settings
+  ```yaml
+  name: OpenaiGPTLLM
+  model_id: gpt-4o-mini
+  api_key: ${env| custom_openai_key}
+  endpoint: ${env| custom_openai_endpoint, https://api.openai.com/v1}
+  temperature: 0.0
+  vision: false
+  ```
 
-Here's a simple example of using the RAP operator:
+- `configs/workers/rap_workflow.yml`: Worker configurations for the RAP pipeline
+
+## Example Usage in Code
 
 ```python
 from omagent_core.advanced_components.workflow.rap import RAPWorkflow
@@ -75,17 +67,17 @@ from omagent_core.advanced_components.workflow.rap import RAPWorkflow
 workflow = RAPWorkflow()
 
 # Set input query
-workflow.set_input(query="What would happen if we doubled the Earth's gravity?")
+workflow.set_input(query="If 4 friends share 7 pizzas equally, and each pizza has 8 slices, how many slices does each friend get?")
 
 # Get results
-rap_structure = workflow.rap_structure
 final_answer = workflow.final_answer
 ```
 
 ## Troubleshooting
 
-If you encounter issues:
-- Verify Redis is running and accessible
-- Check your OpenAI API key is valid
-- Ensure all dependencies are installed correctly
-- Review logs for any error messages
+Common issues:
+- Invalid API key: Verify your OpenAI API key is set correctly
+- Connection errors: Check your internet connection and API endpoint
+- Import errors: Ensure all dependencies are installed
+
+For more detailed documentation, visit the [OmAgent documentation](https://docs.omagent.ai).

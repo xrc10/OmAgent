@@ -10,10 +10,12 @@ from ...schemas.rap_structure import SearchTree, MCTS
 CURRENT_PATH = Path(__file__).parents[0]
 
 @registry.register_worker()
-class Selection(BaseLLMBackend, BaseWorker):
+class Selection(BaseWorker):
     """Selection worker that implements MCTS selection phase"""
 
     def _run(self, *args, **kwargs):
+        depth_limit = kwargs.get('depth_limit', 5)
+
         # Get tree from STM
         assert self.stm(self.workflow_instance_id).get('data_input', None) is not None
         
@@ -32,7 +34,7 @@ class Selection(BaseLLMBackend, BaseWorker):
         node = tree.root
         while True:
             selected_path.append(node)
-            if node.children is None or len(node.children) == 0 or node.depth >= DEPTH_LIMIT:
+            if node.children is None or len(node.children) == 0 or node.depth >= depth_limit:
                 break
             node = MCTS.uct_select(node)
 

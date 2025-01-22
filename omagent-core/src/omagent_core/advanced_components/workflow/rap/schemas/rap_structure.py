@@ -1,6 +1,9 @@
 from enum import Enum
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
+import itertools
+import numpy as np
+from typing import Callable
 
 class Node:
     id_iter = itertools.count()
@@ -35,17 +38,13 @@ class Node:
         self.parent = parent
         self.children: 'Optional[list[Node]]' = None
         self.calc_q = calc_q
-        if parent is None:
-            self.depth = 0
-        else:
-            self.depth = parent.depth + 1
+        self.depth = parent.depth + 1 if parent else 0
 
     @property
     def Q(self) -> float:
         if self.state is None:
             return self.fast_reward
-        else:
-            return self.calc_q(self.cum_rewards)
+        return self.calc_q(self.cum_rewards)
 
 class SearchTree:
     def __init__(self, data_input):

@@ -1,0 +1,114 @@
+{
+    "name": "rap_workflow",
+    "tasks": [
+        {
+            "name": "InputInterface",
+            "taskReferenceName": "input_interface",
+            "inputParameters": {},
+            "type": "SIMPLE",
+            "taskDefinition": {}
+        },
+        {
+            "name": "mcts_loop",
+            "taskReferenceName": "mcts_loop",
+            "inputParameters": {},
+            "type": "DO_WHILE",
+            "taskDefinition": {},
+            "loopCondition": "if ($.mcts_completion_check[\"finish\"] == true){false;} else {true;}",
+            "loopOver": [
+                {
+                    "name": "Selection",
+                    "taskReferenceName": "selection",
+                    "inputParameters": {
+                        "depth_limit": 3
+                    },
+                    "type": "SIMPLE"
+                },
+                {
+                    "name": "Expansion",
+                    "taskReferenceName": "expansion",
+                    "inputParameters": {
+                        "n_shot": 4,
+                        "sub_question_gen_num": 3,
+                        "yes_sample_num": 10,
+                        "answer_gen_num": 5
+                    },
+                    "type": "SIMPLE"
+                },
+                {
+                    "name": "SimulationPreProcess",
+                    "taskReferenceName": "simulation_preprocess",
+                    "inputParameters": {},
+                    "type": "SIMPLE"
+                },
+                {
+                    "name": "simulation_loop",
+                    "taskReferenceName": "simulation_loop",
+                    "inputParameters": {},
+                    "type": "DO_WHILE",
+                    "loopCondition": "if ($.simulation_postprocess[\"finish\"] == true){false;} else {true;}",
+                    "loopOver": [
+                        {
+                            "name": "Expansion",
+                            "taskReferenceName": "expansion2",
+                            "inputParameters": {
+                                "n_shot": 4,
+                                "sub_question_gen_num": 3,
+                                "yes_sample_num": 10,
+                                "answer_gen_num": 5
+                            },
+                            "type": "SIMPLE"
+                        },
+                        {
+                            "name": "SimulationPostProcess",
+                            "taskReferenceName": "simulation_postprocess",
+                            "inputParameters": {
+                                "depth_limit": 3
+                            },
+                            "type": "SIMPLE"
+                        }
+                    ]
+                },
+                {
+                    "name": "BackPropagation",
+                    "taskReferenceName": "back_propagation",
+                    "inputParameters": {},
+                    "type": "SIMPLE"
+                },
+                {
+                    "name": "MCTSCompletionCheck",
+                    "taskReferenceName": "mcts_completion_check",
+                    "inputParameters": {
+                        "mcts_iter_num": 1
+                    },
+                    "type": "SIMPLE"
+                }
+            ]
+        },
+        {
+            "name": "OutputInterface",
+            "taskReferenceName": "output_interface",
+            "inputParameters": {},
+            "type": "SIMPLE",
+            "taskDefinition": {}
+        },
+        {
+            "name": "Conclude",
+            "taskReferenceName": "task_conclude",
+            "inputParameters": {
+                "final_answer": "${output_interface.output.final_answer}"
+            },
+            "type": "SIMPLE",
+            "taskDefinition": {}
+        }
+    ],
+    "inputParameters": [],
+    "outputParameters": {},
+    "failureWorkflow": "",
+    "schemaVersion": 2,
+    "workflowStatusListenerEnabled": false,
+    "ownerEmail": "default@omagent.ai",
+    "timeoutSeconds": 60,
+    "variables": {},
+    "inputTemplate": {}
+}
