@@ -82,7 +82,7 @@ class MemoryDecisionWorker(BaseWorker):
                 final_decision = "memory_search"
                 image_required_memory = False
                 image_required_answer = False
-            self.stm(self.workflow_instance_id)["memory_search_query"] = user_instruction
+            self.stm(self.workflow_instance_id)["memory_search_query"] = user_instruction.replace("想一下", "").replace("想下", "")
         else:
             if input_has_image and image_required:
                 final_decision = "answer_generator"
