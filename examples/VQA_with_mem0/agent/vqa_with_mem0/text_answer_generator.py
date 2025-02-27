@@ -6,7 +6,7 @@ from omagent_core.utils.registry import registry
 import time
 from datetime import datetime
 
-THRESHOLD = 0.45
+THRESHOLD = 0.40
 
 SYSTEM_PROMPT = """你是小欧，一个由 Om AI 创建的 AI 助手。请始终基于可用信息提供有帮助、准确和简洁的回答。"""
 
