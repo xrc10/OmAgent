@@ -1,0 +1,2 @@
+name: TextAnswerGenerator
+llm: ${sub|qwen25_7b_remote}

@@ -1,0 +1,7 @@
+name: OpenaiGPTLLM
+model_id: omchat-qwen2-7b-siglip-multi-fk77_dpo
+api_key: ${env| custom_openai_key, ZjY3ZDQwMWIxNDE1MmFjN2UzNmNAdFp5QzdGRU4=}
+endpoint: ${env| custom_openai_endpoint, http://10.8.15.30:30002/v2}
+temperature: 0
+stream: true
+vision: true
