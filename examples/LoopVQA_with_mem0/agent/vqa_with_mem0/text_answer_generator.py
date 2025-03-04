@@ -15,7 +15,7 @@ GENERAL_PROMPT = """
 
 1. 始终使用中文回答
 
-{datetime_section}{memory_section}
+{datetime_section}{memory_section}{conversation_section}
 
 问题：{user_instruction}"""
 
@@ -32,6 +32,11 @@ MEMORY_CONTEXT_SECTION = """
 {memory_context}
 """
 
+CONVERSATION_HISTORY_SECTION = """
+对话历史：
+{conversation_history}
+"""
+
 MEMORY_STORE_PROMPT = """
 这是一个记忆存储请求。请按以下方式回应：
 
@@ -41,6 +46,9 @@ MEMORY_STORE_PROMPT = """
    
 2. 始终使用中文回答
 
+对话历史：
+{conversation_history}
+
 要存储的内容：{user_instruction}"""
 
 @registry.register_worker()
@@ -49,15 +57,31 @@ class TextAnswerGenerator(BaseWorker, BaseLLMBackend):
 
     llm: OpenaiGPTLLM
 
+    def _format_conversation_history(self, conversation_history):
+        """Format conversation history for inclusion in prompts"""
+        if not conversation_history:
+            return "无"
+            
+        formatted_history = ""
+        for i, conv in enumerate(conversation_history):
+            formatted_history += f"问: {conv['question']}\n答: {conv['answer']}\n"
+            
+        return formatted_history
+
     def _run(self, user_instruction: str, *args, **kwargs):
         current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Get conversation history
+        conversation_history = self.stm(self.workflow_instance_id).get("conversation_history", [])
+        formatted_history = self._format_conversation_history(conversation_history)
         
         # Check if this is a memory store request
         is_store_request = self.stm(self.workflow_instance_id).get("is_store_request", False)
         
         if is_store_request:
             formatted_instruction = MEMORY_STORE_PROMPT.format(
-                user_instruction=user_instruction
+                user_instruction=user_instruction,
+                conversation_history=formatted_history
             )
         else:
             memory_search_results = self.stm(self.workflow_instance_id).get("memory_search_results", {})
@@ -65,6 +89,8 @@ class TextAnswerGenerator(BaseWorker, BaseLLMBackend):
 
             memory_section = ""
             datetime_section = ""
+            conversation_section = CONVERSATION_HISTORY_SECTION.format(conversation_history=formatted_history)
+            
             if relevant_memories:
                 filtered_memories = [mem for mem in relevant_memories if mem.get("score", 0) >= THRESHOLD]
                 if filtered_memories:
@@ -77,7 +103,8 @@ class TextAnswerGenerator(BaseWorker, BaseLLMBackend):
             formatted_instruction = GENERAL_PROMPT.format(
                 user_instruction=user_instruction,
                 memory_section=memory_section,
-                datetime_section=datetime_section
+                datetime_section=datetime_section,
+                conversation_section=conversation_section
             )
 
         messages = [
@@ -91,8 +118,9 @@ class TextAnswerGenerator(BaseWorker, BaseLLMBackend):
 
         answer = response["choices"][0]["message"]["content"]
         
-        # Store answer in STM for memory store worker
+        # Store answer in STM for memory store worker and final output
         self.stm(self.workflow_instance_id)["answer"] = answer
+        self.stm(self.workflow_instance_id)["final_answer"] = answer
         
         # Send answer to user
         self.callback.send_answer(self.workflow_instance_id, msg=answer)

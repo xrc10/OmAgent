@@ -13,7 +13,7 @@ THRESHOLD = 0.40
 ANSWER_PROMPT = """你是小欧，一个由 Om AI 创建的 AI 助手，专门用于回答与图像相关的问题。请始终基于可用信息提供有帮助、准确和简洁的回答。"""
 
 GENERAL_PROMPT = """
-请回答问题，并参考提供的相关记忆。重要指引：
+请回答问题，并参考提供的相关记忆和对话历史。重要指引：
 
 1. 保持回答简洁，最多50个汉字
 2. 如果问题涉及过去的事件，且没有找到相关记忆，请回答"抱歉，我没有找到相关的记录"
@@ -22,12 +22,18 @@ GENERAL_PROMPT = """
 相关记忆：
 {memory_context}
 
+对话历史：
+{conversation_history}
+
 当前时间：{datetime}
 
 问题：{user_instruction}"""
 
 GENERAL_PROMPT_WITHOUT_MEMORY = """
-请回答问题。始终使用中文回答。
+请回答问题，并参考提供的对话历史。始终使用中文回答。
+
+对话历史：
+{conversation_history}
 
 问题：{user_instruction}"""
 
@@ -35,6 +41,9 @@ MEMORY_STORE_PROMPT = """请根据图片内容创建一条简短的记忆记录�
 
 1. 结合图片，用20字以内简洁描述需要记忆的内容
 2. 如果存在相对时间，例如"昨天"，请参考当前时间：{datetime}
+
+对话历史：
+{conversation_history}
 
 记忆请求：{user_instruction}
 
@@ -48,9 +57,24 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
 
     llm: OpenaiGPTLLM
 
+    def _format_conversation_history(self, conversation_history):
+        """Format conversation history for inclusion in prompts"""
+        if not conversation_history:
+            return "无"
+            
+        formatted_history = ""
+        for i, conv in enumerate(conversation_history):
+            formatted_history += f"问: {conv['question']}\n答: {conv['answer']}\n"
+            
+        return formatted_history
+
     def _generate_answer(self, user_instruction: str, memory_context: str, image_cache: dict) -> tuple:
         # Get current datetime
         current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Get conversation history
+        conversation_history = self.stm(self.workflow_instance_id).get("conversation_history", [])
+        formatted_history = self._format_conversation_history(conversation_history)
         
         # Check if this is a memory store request
         is_store_request = self.stm(self.workflow_instance_id).get("is_store_request", False)
@@ -58,17 +82,20 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
         if is_store_request:
             user_instruction = MEMORY_STORE_PROMPT.format(
                 user_instruction=user_instruction,
-                datetime=current_datetime
+                datetime=current_datetime,
+                conversation_history=formatted_history
             )
         elif len(memory_context) == 0:    
             user_instruction = GENERAL_PROMPT_WITHOUT_MEMORY.format(
-                user_instruction=user_instruction
+                user_instruction=user_instruction,
+                conversation_history=formatted_history
             )
         else:
             user_instruction = GENERAL_PROMPT.format(
                 user_instruction=user_instruction,
                 memory_context=memory_context,
-                datetime=current_datetime
+                datetime=current_datetime,
+                conversation_history=formatted_history
             )
 
         answer_messages = [
@@ -144,6 +171,7 @@ class VQAAnswerGenerator(BaseWorker, BaseLLMBackend):
 
         # Store answer in STM for memory store worker
         self.stm(self.workflow_instance_id)["answer"] = answer
+        self.stm(self.workflow_instance_id)["final_answer"] = answer
 
         # Send answer only if not already streamed
         if not self.llm.stream:

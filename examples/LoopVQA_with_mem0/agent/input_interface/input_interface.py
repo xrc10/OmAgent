@@ -20,15 +20,32 @@ class InputInterface(BaseWorker):
     """
 
     def _run(self, *args, **kwargs):
-        # Read user input through configured input interface
-        # user_input = self.input.read_input(
-        #     workflow_instance_id=self.workflow_instance_id,
-        #     input_prompt="Please provide your question and image."
-        # )
+        # Get conversation history from STM
+        conversation_history = self.stm(self.workflow_instance_id).get("conversation_history", [])
+        
+        # Format conversation history for display
+        history_display = ""
+        if conversation_history:
+            history_display = "\n历史对话:\n"
+            for i, conv in enumerate(conversation_history):
+                history_display += f"问: {conv['question']}\n答: {conv['answer']}\n"
+            
+            # Display conversation history to user
+            self.callback.send_answer(
+                self.workflow_instance_id,
+                msg=history_display
+            )
 
-        user_input = self.input.read_first_input(
+        # Read user input through configured input interface
+
+        user_input = self.input.read_input(
             workflow_instance_id=self.workflow_instance_id,
+            input_prompt="Please provide your question and image."
         )
+
+        # user_input = self.input.read_first_input(
+        #     workflow_instance_id=self.workflow_instance_id,
+        # )
 
         # Extract user_id from kwargs if present
         user_id = None

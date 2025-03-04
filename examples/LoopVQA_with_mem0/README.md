@@ -1,19 +1,20 @@
 # Visual Question Answering with Memory Example
 
-This example demonstrates how to use the framework for visual question answering (VQA) tasks with memory capabilities. The example code can be found in the `examples/VQA_with_mem0` directory.
+This example demonstrates how to use the framework for visual question answering (VQA) tasks with memory capabilities and conversation history. The example code can be found in the `examples/LoopVQA_with_mem0` directory.
 
 ```bash
-cd examples/VQA_with_mem0
+cd examples/LoopVQA_with_mem0
 ```
 
 ## Overview
 
-This example implements a Visual Question Answering (VQA) workflow with memory that consists of two main components:
+This example implements a Visual Question Answering (VQA) workflow with memory and conversation history that consists of these main components:
 
 1. **Input Interface**
    - Handles user input containing questions about images
    - Processes and manages image data
    - Extracts the user's questions/instructions
+   - Displays conversation history
 
 2. **VQA with Memory Processing**
    - Takes the user input and image
@@ -22,7 +23,12 @@ This example implements a Visual Question Answering (VQA) workflow with memory t
    - Generates appropriate responses to visual queries
    - Stores new memories when relevant
 
-The workflow follows a straightforward sequence:
+3. **Conversation Loop**
+   - Maintains an ongoing conversation until the user types "退出" (exit)
+   - Keeps track of conversation history for context
+   - Provides the last 5 conversation turns to the model for better context awareness
+
+The workflow follows a straightforward sequence with an outer loop for continuous conversation.
 
 ## Prerequisites
 
@@ -40,7 +46,7 @@ The container.yaml file is a configuration file that manages dependencies and se
    ```bash
    python compile_container.py
    ```
-   This will create a container.yaml file with default settings under `examples/VQA_with_mem0`.
+   This will create a container.yaml file with default settings under `examples/LoopVQA_with_mem0`.
 
 
 2. Configure your LLM settings in `configs/llms/gpt.yml`:
@@ -71,6 +77,11 @@ The container.yaml file is a configuration file that manages dependencies and se
    ```bash
    python run_app.py
    ```
+
+4. Conversation Loop:
+   - The system will maintain an ongoing conversation until you type "退出" (exit)
+   - Each new question will be processed with awareness of previous conversation turns
+   - Type "退出" to end the conversation
 
 ## Troubleshooting
 
