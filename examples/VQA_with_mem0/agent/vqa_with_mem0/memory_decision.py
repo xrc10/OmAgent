@@ -48,10 +48,11 @@ class MemoryDecisionWorker(BaseWorker):
         )
         
         # Check for image keywords
-        image_required = self.contains_keywords(
-            user_instruction, 
-            self.image_keywords[lang_keywords]
-        )
+        # image_required = self.contains_keywords(
+        #     user_instruction, 
+        #     self.image_keywords[lang_keywords]
+        # )
+        image_required = True # use input_has_image only to decide
         
         # Check for store keywords
         is_store_request = self.contains_keywords(

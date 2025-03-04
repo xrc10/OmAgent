@@ -1,3 +1,4 @@
 name: ObstacleDetector
 # llm: ${sub|fk77_dpo}  # Using the same LLM config as VQA example 
 llm: ${sub|intern25_vl_1b_remote}
+# llm: ${sub|qwen25_vl_3b_remote}
