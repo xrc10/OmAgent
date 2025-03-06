@@ -96,11 +96,11 @@ task7_3 = simple_task(task_def_name="MemoryStore",
                       inputs={"user_instruction": task1.output("user_instruction")},
 )
 
-# 8. Format and output the final answer
-task8 = simple_task(task_def_name="OutputFormatter", task_reference_name="output_formatter")
-
-# 9. Check if user wants to exit the conversation
-task9 = simple_task(task_def_name="ExitChecker", task_reference_name="exit_checker")
+# 8. Check if user wants to exit the conversation
+task8_0 = simple_task(task_def_name="ExitChecker", task_reference_name="exit_checker_0")
+task8_1 = simple_task(task_def_name="ExitChecker", task_reference_name="exit_checker_1")
+task8_2 = simple_task(task_def_name="ExitChecker", task_reference_name="exit_checker_2")
+task8_3 = simple_task(task_def_name="ExitChecker", task_reference_name="exit_checker_3")
 
 # Create switch task for routing based on memory_decision output
 switch_task = SwitchTask(
@@ -109,16 +109,16 @@ switch_task = SwitchTask(
 )
 
 # Add switch cases with unique task reference names
-switch_task.switch_case("multimodal_query_generator", [task3, task4_0, task5_0, task7_0])
-switch_task.switch_case("memory_search", [task4_1, task6_0, task7_1])
-switch_task.switch_case("answer_generator", [task5_1, task7_2])
-switch_task.switch_case("text_answer_generator", [task6_1, task7_3])
+switch_task.switch_case("multimodal_query_generator", [task3, task4_0, task5_0, task7_0, task8_0])
+switch_task.switch_case("memory_search", [task4_1, task6_0, task7_1, task8_1])
+switch_task.switch_case("answer_generator", [task5_1, task7_2, task8_2])
+switch_task.switch_case("text_answer_generator", [task6_1, task7_3, task8_3])
 
 # Create outer loop that continues until user types "退出"
 conversation_loop = DoWhileTask(
     task_ref_name="conversation_loop",
-    tasks=[task1, task2, switch_task, task8, task9],
-    termination_condition='if ($.exit_checker["should_exit"] == true){false;} else {true;} ',
+    tasks=[task1, task2, switch_task],
+    termination_condition='if ($.exit_checker_0["should_exit"] == true){false;} else {true;} ',
 )
 
 # Create the main workflow sequence
