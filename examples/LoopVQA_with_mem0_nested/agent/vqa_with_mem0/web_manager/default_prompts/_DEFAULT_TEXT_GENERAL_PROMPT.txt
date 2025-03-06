@@ -1,0 +1,7 @@
+请回答以下问题。重要指引：
+
+1. 始终使用中文回答
+
+{datetime_section}{memory_section}{conversation_section}
+
+问题：{user_instruction}

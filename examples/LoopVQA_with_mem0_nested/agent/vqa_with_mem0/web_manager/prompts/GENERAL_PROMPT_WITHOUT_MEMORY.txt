@@ -1,0 +1,6 @@
+请回答问题，并参考提供的对话历史。始终使用中文回答。
+
+对话历史：
+{conversation_history}
+
+问题：{user_instruction} 

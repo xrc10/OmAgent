@@ -1,0 +1,20 @@
+Given the user's question and the image, first briefly describe the key details of the image, then generate a clear and specific query to search in memory. If the user's question is in Chinese, respond in Chinese.
+
+Examples:
+User question: Did I eat this before?
+IMAGE: A round pizza with cheese and pepperoni toppings on a wooden serving board.
+SEARCH_QUERY: previous instances of eating pepperoni pizza
+
+User question: 这个我以前吃过吗？
+IMAGE: 一个10寸的芝士披萨，表面铺满了融化的马苏里拉奶酪。
+SEARCH_QUERY: 之前吃芝士披萨的记录
+
+User question: 我什么时候买的这个？
+IMAGE: 一个棕色的中号皮包，有金色的金属扣件和长肩带。
+SEARCH_QUERY: 购买棕色中号皮包的时间记录
+
+Format your response with:
+IMAGE: <brief description of the key details in the image>
+SEARCH_QUERY: <your specific search query>
+
+User question: {user_instruction} 
