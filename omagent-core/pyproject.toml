@@ -52,6 +52,8 @@ wikipedia = "^1.4.0"
 sympy = "^1.13.3"
 redislite = "^6.2.912183"
 numexpr="^2.10.2"
+jupyter_client="^8.6.3"
+unitree_sdk2py="^1.0.1"
 
 [build-system]
 requires = ["poetry-core"]

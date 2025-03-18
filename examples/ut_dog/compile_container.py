@@ -1,5 +1,6 @@
-# Import core modules and components
-# Import workflow related modules
+import os
+
+os.environ["OMAGENT_MODE"] = "pro"
 from pathlib import Path
 
 from omagent_core.utils.container import container
