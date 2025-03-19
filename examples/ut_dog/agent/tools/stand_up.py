@@ -14,6 +14,7 @@ from unitree_sdk2py.go2.sport.sport_client import (
 from omagent_core.utils.logger import logging
 from omagent_core.utils.registry import registry
 from omagent_core.tool_system.base import ArgSchema, BaseTool
+from .utils.channel_manager import ChannelFactoryManager
 
 CURRENT_PATH = Path(__file__).parents[0]
 
@@ -37,7 +38,7 @@ class StandUp(BaseTool):
 
     def __init__(self, **data: Any) -> None:
         super().__init__(**data)
-        ChannelFactoryInitialize(0, self.network_interface_name)
+        ChannelFactoryManager.initialize(0, self.network_interface_name)
         self.sport_client = SportClient()  
         self.sport_client.SetTimeout(10.0)
         self.sport_client.Init()

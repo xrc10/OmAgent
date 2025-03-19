@@ -1,7 +1,7 @@
 conductor_config:
   name: Configuration
   base_url:
-    value: http://10.8.21.38:8080
+    value: http://10.8.28.230:8080
     description: The Conductor Server API endpoint
     env_var: CONDUCTOR_SERVER_URL
   auth_key:
@@ -27,10 +27,10 @@ connectors:
       value: null
       env_var: ID
     host:
-      value: 10.8.21.38
+      value: 10.8.28.230
       env_var: HOST
     port:
-      value: 6379
+      value: 7379
       env_var: PORT
     password:
       value: null
@@ -50,10 +50,10 @@ connectors:
       value: null
       env_var: ID
     host:
-      value: 10.8.21.38
+      value: 10.8.28.230
       env_var: HOST
     port:
-      value: 6379
+      value: 7379
       env_var: PORT
     password:
       value: null
