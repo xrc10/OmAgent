@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Union, Optional
 
 import geocoder
 from openai import AsyncOpenAI, OpenAI
-from pydantic import Field
+from pydantic import Field, BaseModel
 
 from omagent_core.utils.registry import registry
 from omagent_core.models.llms.base import BaseLLM
@@ -110,45 +110,31 @@ class OpenaiGPTLLM(BaseLLM):
 
         messages = self._msg2req(records)
 
+        args = {
+            "model": self.model_id,
+            "messages": messages,
+            "temperature": kwargs.get("temperature", self.temperature),
+            "max_tokens": kwargs.get("max_tokens", self.max_tokens),
+            "stream": kwargs.get("stream", self.stream),
+            "response_format": kwargs.get("response_format", self.response_format),
+            "n": kwargs.get("n", self.n),
+            "top_p": kwargs.get("top_p", self.top_p),
+            "frequency_penalty": kwargs.get("frequency_penalty", self.frequency_penalty),
+            "logit_bias": kwargs.get("logit_bias", self.logit_bias),
+            "logprobs": kwargs.get("logprobs", self.logprobs),
+            "top_logprobs": kwargs.get("top_logprobs", self.top_logprobs),
+            "stop": kwargs.get("stop", self.stop),
+            "stream_options": kwargs.get("stream_options", self.stream_options),
+        }
+
+        if issubclass(args["response_format"], BaseModel):
+            args.pop("stream")
+            args.pop("stream_options")
+
         if self.vision:
-            res = self.client.chat.completions.create(
-                model=self.model_id,
-                messages=messages,
-                temperature=kwargs.get("temperature", self.temperature),
-                max_tokens=kwargs.get("max_tokens", self.max_tokens),
-                stream=kwargs.get("stream", self.stream),
-                n=kwargs.get("n", self.n),
-                top_p=kwargs.get("top_p", self.top_p),
-                frequency_penalty=kwargs.get(
-                    "frequency_penalty", self.frequency_penalty
-                ),
-                logit_bias=kwargs.get("logit_bias", self.logit_bias),
-                logprobs=kwargs.get("logprobs", self.logprobs),
-                top_logprobs=kwargs.get("top_logprobs", self.top_logprobs),
-                stop=kwargs.get("stop", self.stop),
-                stream_options=kwargs.get("stream_options", self.stream_options),
-            )
+            res = self.client.beta.chat.completions.parse(**args)
         else:
-            res = self.client.chat.completions.create(
-                model=self.model_id,
-                messages=messages,
-                temperature=kwargs.get("temperature", self.temperature),
-                max_tokens=kwargs.get("max_tokens", self.max_tokens),
-                response_format=kwargs.get("response_format", self.response_format),
-                tools=kwargs.get("tools", None),
-                tool_choice=kwargs.get("tool_choice", None),
-                stream=kwargs.get("stream", self.stream),
-                n=kwargs.get("n", self.n),
-                top_p=kwargs.get("top_p", self.top_p),
-                frequency_penalty=kwargs.get(
-                    "frequency_penalty", self.frequency_penalty
-                ),
-                logit_bias=kwargs.get("logit_bias", self.logit_bias),
-                logprobs=kwargs.get("logprobs", self.logprobs),
-                top_logprobs=kwargs.get("top_logprobs", self.top_logprobs),
-                stop=kwargs.get("stop", self.stop),
-                stream_options=kwargs.get("stream_options", self.stream_options),
-            )
+            res = self.client.chat.completions.create(**args)
 
         if kwargs.get("stream", self.stream):
             return res
