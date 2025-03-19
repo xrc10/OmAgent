@@ -18,8 +18,8 @@ ARGSCHEMA = {
 
 
 @registry.register_tool()
-class GetImageSample(BaseTool):
-    """Tool for making Unitree Go2 robot to get image sample."""
+class GetSurroundingImage(BaseTool):
+    """Tool for making Unitree Go2 robot to get surrounding image. Can get images in 8 directions at once."""
 
     class Config:
         """Configuration for this pydantic object."""
@@ -28,7 +28,7 @@ class GetImageSample(BaseTool):
         arbitrary_types_allowed = True
 
     args_schema: ArgSchema = ArgSchema(**ARGSCHEMA)
-    description: str = "Control the Unitree Go2 robot to get image sample."
+    description: str = "Control the Unitree Go2 robot to get surrounding image. Can get images in 8 directions at once."
     network_interface_name: Optional[str]
 
     def __init__(self, **data: Any) -> None:
@@ -37,6 +37,7 @@ class GetImageSample(BaseTool):
         self.video_client = VideoClient()  
         self.video_client.SetTimeout(3.0)
         self.video_client.Init()
+        self.sport_client = ChannelFactoryManager.get_sport_client()
 
     @field_validator("network_interface_name")
     @classmethod
@@ -58,22 +59,28 @@ class GetImageSample(BaseTool):
         self,
     ) -> Dict[str, Any]:
         """
-        Control the Unitree Go2 robot to get image sample.
+        Control the Unitree Go2 robot to get surrounding image. Can get images in 8 directions at once.
         """
 
         try:
-            image = self.take_shot()
+            surroundings =[]
+            for i in range(8):
+                image = self.take_shot()
+                vyaw = 1.5
+                surroundings.append({"image": image, "direction": i*vyaw})
+                self.sport_client.Move(0,0,vyaw)
+                time.sleep(1)
             cache_data = self.stm(self.workflow_instance_id)["image_cache"]
             if cache_data is None:
                 cache_data = {}
-            cache_data.update({f"<image_{int(time.time())}>": [{"image": image, "direction": 0}]})
+            cache_data.update({f"<image_{int(time.time())}>": surroundings})
             self.stm(self.workflow_instance_id)["image_cache"] = cache_data
             return {
                 "code": 0,
                 "msg": "success"
             }
         except Exception as e:
-            logging.error(f"Get image sample failed: {e}")
+            logging.error(f"Get surrounding image failed: {e}")
             return {
                 "code": 500,
                 "msg": "failed",
