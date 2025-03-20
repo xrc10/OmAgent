@@ -29,8 +29,7 @@ class StandUp(BaseTool):
 
     def __init__(self, **data: Any) -> None:
         super().__init__(**data)
-        ChannelFactoryManager.initialize(0, self.network_interface_name)
-        self.sport_client = ChannelFactoryManager.get_sport_client()
+        self.sport_client = None
 
     @field_validator("network_interface_name")
     @classmethod
@@ -45,7 +44,9 @@ class StandUp(BaseTool):
         """
         Control the Go2 to stand up.
         """
-
+        if self.sport_client is None:
+            ChannelFactoryManager.initialize(0, self.network_interface_name)
+            self.sport_client = ChannelFactoryManager.get_sport_client()
         try:
             code = self.sport_client.StandUp()
             if code != 0:

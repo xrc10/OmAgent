@@ -1,6 +1,7 @@
 from unitree_sdk2py.core.channel import ChannelFactoryInitialize
 from unitree_sdk2py.comm.motion_switcher.motion_switcher_client import MotionSwitcherClient
 from unitree_sdk2py.go2.sport.sport_client import SportClient
+from unitree_sdk2py.go2.video.video_client import VideoClient
 from typing import Optional
 import time
 
@@ -8,6 +9,7 @@ class ChannelFactoryManager:
     _instance = None
     _initialized = False
     _sport_client = None
+    _video_client = None
 
     def __new__(cls):
         if cls._instance is None:
@@ -33,6 +35,11 @@ class ChannelFactoryManager:
             cls._sport_client = SportClient()
             cls._sport_client.SetTimeout(5.0)
             cls._sport_client.Init()
+
+            # Initialize video client as a class attribute
+            cls._video_client = VideoClient()
+            cls._video_client.SetTimeout(5.0)
+            cls._video_client.Init()
             
             code, data = msc.CheckMode()
             if code == 0 and data["name"] == "normal":
@@ -69,3 +76,18 @@ class ChannelFactoryManager:
         if not cls._initialized:
             raise RuntimeError("ChannelFactoryManager must be initialized first")
         return cls._sport_client 
+    
+    @classmethod
+    def get_video_client(cls) -> VideoClient:
+        """
+        Get the singleton instance of VideoClient.
+
+        Returns:
+            VideoClient: The initialized VideoClient instance
+        
+        Raises:
+            RuntimeError: If ChannelFactoryManager is not initialized
+        """
+        if not cls._initialized:
+            raise RuntimeError("ChannelFactoryManager must be initialized first")
+        return cls._video_client

@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 from pydantic import field_validator
+import time
+import math
 
 from omagent_core.utils.logger import logging
 from omagent_core.utils.registry import registry
@@ -11,18 +13,18 @@ CURRENT_PATH = Path(__file__).parents[0]
 
 ARGSCHEMA = {
     "vx": {
-        "type": "float",
-        "description": "Speed along the x-axis direction, in meters per second (m/s). Positive values indicate forward movement, and negative values indicate backward movement. Value range: [-2.5~3.8] m/s.",
+        "type": "number",
+        "description": "Speed along the x-axis direction, in meters per second (m/s). Positive values indicate forward movement, and negative values indicate backward movement. ",
         "required": False,
     },
     "vy": {
-        "type": "float",
-        "description": "Speed along the y-axis direction, in meters per second (m/s). Positive values indicate movement to the left, and negative values indicate movement to the right. Value range: [-1.0~1.0] m/s.",
+        "type": "number",
+        "description": "Speed along the y-axis direction, in meters per second (m/s). Positive values indicate movement to the left, and negative values indicate movement to the right.",
         "required": False,
     },
     "vyaw": {
-        "type": "float",
-        "description": "Angular velocity around the z-axis, in radians per second (rad/s). Positive values indicate counterclockwise rotation, and negative values indicate clockwise rotation. Value range: [-4~4] rad/s.",
+        "type": "number",
+        "description": "Angular velocity around the z-axis, in radians per second (rad/s). Positive values indicate counterclockwise rotation, and negative values indicate clockwise rotation. ",
         "required": False,
     },
 }
@@ -39,13 +41,13 @@ class Move(BaseTool):
         arbitrary_types_allowed = True
 
     args_schema: ArgSchema = ArgSchema(**ARGSCHEMA)
-    description: str = "Control the Go2 to move."
-    network_interface_name: Optional[str]
+    description: str = """This tool is used to control the robot dog to move. You can make the robot dog move forward, backward, left, right, and rotate by manipulating the vx, vy, and vyaw parameters.
+    """
+    network_interface_name: Optional[str] = "eth0"
 
     def __init__(self, **data: Any) -> None:
         super().__init__(**data)
-        ChannelFactoryManager.initialize(0, self.network_interface_name)
-        self.sport_client = ChannelFactoryManager.get_sport_client()
+        self.sport_client = None
 
     @field_validator("network_interface_name")
     @classmethod
@@ -60,17 +62,31 @@ class Move(BaseTool):
         vy: float = 0,
         vyaw: float = 0
     ) -> Dict[str, Any]:
-        """
-        Control the Go2 to move.
-        """
-
+        """Control the Go2 to move."""
+        if self.sport_client is None:
+            ChannelFactoryManager.initialize(0, self.network_interface_name)
+            self.sport_client = ChannelFactoryManager.get_sport_client()
         try:
-            # self.sport_client.BalanceStand()
-            code = self.sport_client.Move(vx, vy, vyaw)
-            if code != 0:
-                raise Exception(f"code: {code}")
+            if abs(vyaw) > 4:
+                remaining_vyaw = abs(vyaw)
+                direction = 1 if vyaw > 0 else -1
+                
+                while remaining_vyaw > 0:
+                    current_vyaw = min(1.5, remaining_vyaw) * direction
+                    
+                    print(f"----current_vyaw: {current_vyaw}")
+                    code = self.sport_client.Move(vx, vy, current_vyaw)
+                    if code != 0:
+                        raise Exception(f"code: {code}")
+                    
+                    remaining_vyaw -= abs(current_vyaw)
+                    time.sleep(1)
+            else:
+                code = self.sport_client.Move(vx, vy, vyaw)
+                if code != 0:
+                    raise Exception(f"code: {code}")
             return {
-                "code": code,
+                "code": 0,
                 "msg": "success",
             }
         except Exception as e:

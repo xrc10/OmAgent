@@ -70,7 +70,7 @@ class OpenaiGPTLLM(BaseLLM):
         description="A list of function tools (max 128) that the model can call, each requiring a type, name and optional description/parameters defined in JSON Schema format.",
     )
     tool_choice: Optional[str] = Field(
-        default="none",
+        default=None,
         description="Controls which tool (if any) is called by the model: 'none', 'auto', 'required', or a specific tool.",
     )
 
@@ -125,13 +125,14 @@ class OpenaiGPTLLM(BaseLLM):
             "top_logprobs": kwargs.get("top_logprobs", self.top_logprobs),
             "stop": kwargs.get("stop", self.stop),
             "stream_options": kwargs.get("stream_options", self.stream_options),
+            "tools": kwargs.get("tools", []),
+            "tool_choice": kwargs.get("tool_choice", self.tool_choice),
         }
 
-        if issubclass(args["response_format"], BaseModel):
+
+        if isinstance(args["response_format"], type) and issubclass(args["response_format"], BaseModel):
             args.pop("stream")
             args.pop("stream_options")
-
-        if self.vision:
             res = self.client.beta.chat.completions.parse(**args)
         else:
             res = self.client.chat.completions.create(**args)

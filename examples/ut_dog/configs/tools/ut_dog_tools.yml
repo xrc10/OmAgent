@@ -1,0 +1,4 @@
+llm: ${sub|text_res}
+tools:
+    - Move
+    - GetSurroundingImage

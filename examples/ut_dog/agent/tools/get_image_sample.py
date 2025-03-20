@@ -5,7 +5,6 @@ from typing import Any, Dict, Optional, Union
 import cv2
 import numpy as np
 from pydantic import field_validator
-from unitree_sdk2py.go2.video.video_client import VideoClient
 
 from omagent_core.utils.logger import logging
 from omagent_core.utils.registry import registry
@@ -33,10 +32,7 @@ class GetImageSample(BaseTool):
 
     def __init__(self, **data: Any) -> None:
         super().__init__(**data)
-        ChannelFactoryManager.initialize(0, self.network_interface_name)
-        self.video_client = VideoClient()  
-        self.video_client.SetTimeout(3.0)
-        self.video_client.Init()
+        self.video_client = None
 
     @field_validator("network_interface_name")
     @classmethod
@@ -46,6 +42,10 @@ class GetImageSample(BaseTool):
         return network_interface_name
     
     def take_shot(self):
+        if self.video_client is None:
+            ChannelFactoryManager.initialize(0, self.network_interface_name)
+            self.video_client = ChannelFactoryManager.get_video_client()
+
         code, data = self.video_client.GetImageSample()
         if code != 0:
             raise Exception(f"Get image sample failed: {code}")

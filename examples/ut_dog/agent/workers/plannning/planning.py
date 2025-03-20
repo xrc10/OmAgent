@@ -51,7 +51,7 @@ class Planning(BaseLLMBackend, BaseWorker):
             )
         self.stm(self.workflow_instance_id)["note"] = Note(**json.loads(result["choices"][0]["message"]["content"]))
 
-        self.callback.send_answer(agent_id=self.workflow_instance_id, msg=f"In order to complete the task you have assigned to me, I have formulated the following plan.\n{str(self.stm(self.workflow_instance_id).get('note'))}")
+        self.callback.send_block(agent_id=self.workflow_instance_id, msg=f"In order to complete the task you have assigned to me, I have formulated the following plan.\n{str(self.stm(self.workflow_instance_id).get('note'))}")
 
         return {"user_instruction": user_instruction}
 

@@ -34,7 +34,7 @@ class GetRangeInfo(BaseTool):
 
     def __init__(self, **data: Any) -> None:
         super().__init__(**data)
-        ChannelFactoryManager.initialize(0, self.network_interface_name)
+        self.subscriber = None
 
     @field_validator("network_interface_name")
     @classmethod
@@ -45,7 +45,9 @@ class GetRangeInfo(BaseTool):
     
     def get_single_range_info(self):
         # Create a subscriber
-        subscriber = ChannelSubscriber("rt/utlidar/range_info", PointStamped_)
+        if self.subscriber is None:
+            ChannelFactoryManager.initialize(0, self.network_interface_name)
+            self.subscriber = ChannelFactoryManager.get_subscriber("rt/utlidar/range_info", PointStamped_)
         
         # For storing received data
         received_data = None
@@ -60,7 +62,7 @@ class GetRangeInfo(BaseTool):
                 'right_distance': message.point.z
             }
         
-        subscriber.Init(single_handler)
+        self.subscriber.Init(single_handler)
         
         # Wait for data reception (up to 3 seconds)
         timeout = 3
