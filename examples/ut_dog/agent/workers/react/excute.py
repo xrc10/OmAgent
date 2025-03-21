@@ -53,6 +53,8 @@ class ReactExcute(BaseLLMBackend, BaseWorker):
                     return {"all_tasks_finished": True}
                 else:
                     return {"all_tasks_finished": False}
+            else:
+                self.callback.send_block(agent_id=self.workflow_instance_id, msg=f"The current task is not completed. Reason: {observation.reason}")
                 
         self.callback.send_block(agent_id=self.workflow_instance_id, msg=f"I tried 3 times, but still failed the task {current_task.instruction}")
         raise Exception("All attempts failed")

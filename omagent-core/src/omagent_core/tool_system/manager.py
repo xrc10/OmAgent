@@ -257,39 +257,30 @@ class ToolManager(BaseLLMBackend):
             }
             return "failed", content
         else:
-            tool_calls = [tool_calls[0]]
-            toolcall_structure = {
-                "name": tool_calls[0]["function"]["name"],
-                "arguments": json.loads(tool_calls[0]["function"]["arguments"]),
-            }
-            self.callback.info(
-                agent_id=self.workflow_instance_id,
-                progress=f"Conqueror",
-                message=f'Tool {toolcall_structure["name"]} executing. Arguments: {toolcall_structure["arguments"]}',
-            )
             tool_execution_res = []
             try:
                 for each_tool_call in tool_calls:
+                    toolcall_structure = {
+                        "name": tool_calls[0]["function"]["name"],
+                        "arguments": json.loads(tool_calls[0]["function"]["arguments"]),
+                    }
+                    self.callback.info(
+                        agent_id=self.workflow_instance_id,
+                        progress=f"Conqueror",
+                        message=f'Tool {toolcall_structure["name"]} executing. Arguments: {toolcall_structure["arguments"]}',
+                    )
+
                     result = self.execute(
                         each_tool_call["function"]["name"],
                         each_tool_call["function"]["arguments"],
                     )
                     tool_execution_res.append(result)
-                toolcall_structure = {
-                    "status": "success",
-                    "tool_use": list(
-                        set(
-                            [
-                                each_tool_call["function"]["name"]
-                                for each_tool_call in tool_calls
-                            ]
-                        )
-                    ),
-                    "argument": [
-                        each_tool_call["function"]["arguments"]
-                        for each_tool_call in tool_calls
-                    ],
-                }
+                    
+                    self.callback.info(
+                        agent_id=self.workflow_instance_id,
+                        progress=f"Conqueror",
+                        message=f'Tool {toolcall_structure["name"]} executed successfully. Result: {result}',
+                    )
                 return "success", tool_execution_res
             except ValueError as error:
                 toolcall_failed_structure = {

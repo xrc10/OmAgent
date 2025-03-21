@@ -1,6 +1,14 @@
 name: OpenaiGPTLLM
 model_id: gpt-4o
-api_key: ${env| custom_openai_key, sk-2fpMc0GBGTGG96w62cF7B9621bA34aDa8b2112D26404Ae4e}
-endpoint: ${env| custom_openai_endpoint, http://10.8.17.22:3000/v1}
+api_key: ${env| custom_openai_key, sk-3xdGX6OJI0uXjrKvn1EzVarMwBb7CVCV2q4vGnNqnWOoiH0w}
+endpoint: ${env| custom_openai_endpoint, https://aiapi.home.xeonhis.top:10443/v1}
 temperature: 0
 vision: true
+
+
+# name: OpenaiGPTLLM
+# model_id: gpt-4o-mini
+# api_key: ${env| custom_openai_key, sk-2fpMc0GBGTGG96w62cF7B9621bA34aDa8b2112D26404Ae4e}
+# endpoint: ${env| custom_openai_endpoint, http://10.8.17.22:3000/v1}
+# temperature: 0
+# vision: true

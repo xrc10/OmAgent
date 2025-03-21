@@ -4,7 +4,7 @@ from pathlib import Path
 import os
 from string import Formatter
 from typing import Any, Dict, List, Union
-
+from copy import deepcopy
 from pydantic import model_validator
 
 from ....utils.registry import registry
@@ -163,8 +163,12 @@ class PromptTemplate(BasePromptTemplate):
     @classmethod
     def from_config(cls, config: Dict) -> PromptTemplate:
         """Load a prompt template from a config."""
-        template = config.pop("template")
-        if template.endswith(".prompt"):
-            return cls.from_file(template, **config)
+        template = config.get("template")
+        if not template:
+            raise ValueError("template is required")
+        elif template.endswith(".prompt"):
+            extra_config = deepcopy(config)
+            extra_config.pop("template")
+            return cls.from_file(template, **extra_config)
         else:
             return cls.from_template(template, **config)
