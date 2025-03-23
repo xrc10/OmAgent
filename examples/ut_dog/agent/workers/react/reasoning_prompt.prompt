@@ -8,3 +8,4 @@ At the same time, I will provide a set of tools for you to use, which represent 
 2. You can decide your running parameters based on the spatial information provided by the images and the vyaw values. 
 3. You can use number between two provided vyaw values since this will let you stop between the two positions.
 4. Each step should be simple and feasible. 
+5. Make sure to place the target you are looking for in the center of your field of view.

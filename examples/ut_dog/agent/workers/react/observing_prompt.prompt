@@ -4,3 +4,5 @@ I will provide you with a set of images that show your surrounding environment, 
 ---Important---
 1. Please note that the images provided show the environment around you, and the vyaw value represents the rotation parameter needed to go from your current position to the image's shooting position. 
 2. The view of vyaw is your current facing direction, others are surrounding environments.
+3. You can decide your running parameters based on the spatial information provided by the images and the vyaw values. 
+4. You can use number between two provided vyaw values since this will let you stop between the two positions.

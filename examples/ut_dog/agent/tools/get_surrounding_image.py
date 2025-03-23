@@ -1,6 +1,7 @@
 from pathlib import Path
 import time
 from typing import Any, Dict, Optional, Union
+import os
 
 import cv2
 import numpy as np
@@ -55,7 +56,18 @@ class GetSurroundingImage(BaseTool):
 
         image_array = np.frombuffer(bytes(data), np.uint8)
         image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
-        return Image.fromarray(image)
+        pil_image = Image.fromarray(image)
+        
+        # Resize image to have longest edge as 512 pixels while maintaining aspect ratio
+        width, height = pil_image.size
+        max_dim = max(width, height)
+        if max_dim > 512:
+            scale_factor = 512 / max_dim
+            new_width = int(width * scale_factor)
+            new_height = int(height * scale_factor)
+            pil_image = pil_image.resize((new_width, new_height), Image.LANCZOS)
+            
+        return pil_image
 
     def _run(
         self,
@@ -66,14 +78,28 @@ class GetSurroundingImage(BaseTool):
 
         try:
             surroundings =[]
+            
+            # Create directory for saving images if it doesn't exist
+            save_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "saved_images")
+            os.makedirs(save_dir, exist_ok=True)
+            
+            timestamp_raw = int(time.time())
+            formatted_time = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime(timestamp_raw))
+            
             for i in range(8):
                 image = self.take_shot()
-                vyaw = 1.5
-                surroundings.append({"image": image, "vyaw": i*vyaw})
-                self.sport_client.Move(0,0,vyaw)
+                vyaw = 1.5 * i
+                
+                filename = os.path.join(save_dir, f"vyaw_{formatted_time}_{vyaw:.2f}.jpg")
+                image.save(filename)
+                logging.info(f"Saved image to {filename}")
+                
+                surroundings.append({"image": image, "vyaw": vyaw})
+                self.sport_client.Move(0,0,1.5)
                 time.sleep(1)
+                
             cache_data = self.stm(self.workflow_instance_id).get("image_cache", {})
-            cache_data.update({f"<image_{int(time.time())}>": surroundings})
+            cache_data.update({f"<image_{timestamp_raw}>": surroundings})
             self.stm(self.workflow_instance_id)["image_cache"] = cache_data
             return {
                 "code": 0,

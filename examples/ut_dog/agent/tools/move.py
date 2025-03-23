@@ -14,12 +14,12 @@ CURRENT_PATH = Path(__file__).parents[0]
 ARGSCHEMA = {
     "vx": {
         "type": "number",
-        "description": "Speed along the x-axis direction, in meters per second (m/s). Positive values indicate forward movement, and negative values indicate backward movement.",
+        "description": "Speed along the x-axis direction, in meters per second (m/s). Positive values indicate forward movement, and negative values indicate backward movement. If you don't know how far to go, you can try 1.5",
         "required": False,
     },
     "vy": {
         "type": "number",
-        "description": "Speed along the y-axis direction, in meters per second (m/s). Positive values indicate movement to the left, and negative values indicate movement to the right.",
+        "description": "Speed along the y-axis direction, in meters per second (m/s). Positive values indicate movement to the left, and negative values indicate movement to the right.If you don't know how far to go, you can try 1.5",
         "required": False,
     },
     "vyaw": {

@@ -40,7 +40,7 @@ class Planning(BaseLLMBackend, BaseWorker):
         user_prompt = [f"The user's instruction is:{user_instruction}", "The environment around you and the corresponding vyaw value are as follows:"]
         for item in surroundings:
             user_prompt.extend([
-                f"vyaw: {item['vyaw']}, image:",
+                # f"vyaw: {item['vyaw']}, image:",
                 item["image"],
             ])
 
