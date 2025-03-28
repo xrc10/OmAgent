@@ -1,5 +1,7 @@
 from pathlib import Path
 import json
+from pydantic import BaseModel, Field
+from typing import List
 from omagent_core.engine.worker.base import BaseWorker
 from omagent_core.utils.general import read_image
 from omagent_core.utils.logger import logging
@@ -10,10 +12,20 @@ from agent.tools.move import Move
 from agent.tools.get_image_sample import GetImageSample
 from agent.schemas.note import Note
 from time import sleep
-from PIL import Image
+from agent.tools.get_surrounding_image import GetSurroundingImage
 
 CURRENT_PATH = Path(__file__).parents[0]
 
+class Task4gen(BaseModel):
+    instruction: str = Field(description="The instruction of the step, describe what should be done. Should be simple and feasible")
+    proof_of_completion: str = Field(description="Used to determine whether the step has been completed. It should be able to verify based on the current view of the robot. ")
+    is_done: bool = Field(description="Whether the step is done.", literal=False)
+
+class Note4gen(BaseModel):
+    content: List[Task4gen]
+
+    def to_note_memory(self):
+        return Note(**self.model_dump())
 
 @registry.register_worker()
 class Planning(BaseLLMBackend, BaseWorker):
@@ -32,37 +44,37 @@ class Planning(BaseLLMBackend, BaseWorker):
 
         logging.info(f"User_instruction: {user_instruction}")
 
-        surroundings = self.look_around()
+        get_surrounding_image = GetSurroundingImage()
+        get_surrounding_image._parent = self
+        res = get_surrounding_image._run(memorize=False)
+        if res['code'] != 0:
+            self.callback.send_block(agent_id=self.workflow_instance_id, msg=f"Failed to get surrounding images.")
+            raise Exception(res['result'])
+        vision_states = res['vision_states']
 
         with open(CURRENT_PATH.joinpath("sys_prompt.prompt"), "r") as f:
             system_prompt = f.read()
 
         user_prompt = [f"The user's instruction is:{user_instruction}", "The environment around you and the corresponding vyaw value are as follows:"]
-        for item in surroundings:
+        for item in vision_states:
             user_prompt.extend([
-                # f"vyaw: {item['vyaw']}, image:",
-                item["image"],
+                f"vyaw: {item.vyaw}, image:",
+                item.image,
             ])
 
         result = self.llm.generate(records=[
             Message.system(system_prompt),
             Message.user(user_prompt)],
-            response_format=Note
+            response_format=Note4gen
             )
-        self.stm(self.workflow_instance_id)["note"] = Note(**json.loads(result["choices"][0]["message"]["content"]))
+        
+        print(1111111111111111111, result["choices"][0]["message"]["content"])
+
+        note = Note4gen(**json.loads(result["choices"][0]["message"]["content"])).to_note_memory()
+        note.origin_vision = vision_states
+        note.save(CURRENT_PATH.joinpath("memory"))
+        self.stm(self.workflow_instance_id)["note"] = note
 
         self.callback.send_block(agent_id=self.workflow_instance_id, msg=f"In order to complete the task you have assigned to me, I have formulated the following plan.\n{str(self.stm(self.workflow_instance_id).get('note'))}")
 
         return {"user_instruction": user_instruction}
-
-    def look_around(self):
-        move_tool = Move(network_interface_name="eth0")
-        get_image_sample_tool = GetImageSample(network_interface_name="eth0")
-        surroundings =[]
-        for i in range(8):
-            image = get_image_sample_tool.take_shot()
-            surroundings.append({"image": Image.fromarray(image), "vyaw": i*1.5})
-            move_tool._run(vyaw=1.5)
-            print("Move to next direction")
-            sleep(1)
-        return surroundings

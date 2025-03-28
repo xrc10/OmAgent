@@ -12,7 +12,7 @@ from omagent_core.models.llms.prompt.prompt import PromptTemplate
 from pydantic import BaseModel, Field
 from agent.tools.move import Move
 from agent.tools.get_image_sample import GetImageSample
-from agent.schemas.note import Note
+from agent.schemas.note import Note, Step
 from time import sleep
 from PIL import Image
 
@@ -28,8 +28,10 @@ class ReactExcute(BaseLLMBackend, BaseWorker):
     tool_manager: ToolManager
     def _run(self, *args, **kwargs):
         # Read user input through configured input interface
-        note = self.stm(self.workflow_instance_id).get("note")
-        current_task = note.unfinished_steps()[0]
+        note: Note= self.stm(self.workflow_instance_id).get("note")
+        if not note.current_task().steps:
+            note.current_task().steps.append(Step())
+        current_task = note.current_task()
         observation = None
 
         for action_limit in range(3):
@@ -61,30 +63,29 @@ class ReactExcute(BaseLLMBackend, BaseWorker):
         
     
     def reasoning(self, task:str, observation:ObservationResult):
+        note: Note = self.stm(self.workflow_instance_id)["note"]
+
         sys_prompt = PromptTemplate.from_file(CURRENT_PATH.joinpath("reasoning_prompt.prompt"), role="system")
         sys_prompt = sys_prompt.format(tools=self.tool_manager.generate_prompt())
 
-        get_surrounding_image = GetSurroundingImage()
-        get_surrounding_image._parent = self
-        result = get_surrounding_image._run()
-
-        if result["code"] != 0:
-            raise Exception("Get surrounding image failed")
-        
-        surroundings = result["surroundings"]
-
-        user_prompt = [f"The current task is:{task}", "The environment around you and the corresponding vyaw value are as follows:"]
+        user_prompt = [f"The current task is:{task}"]
         if observation:
             user_prompt.extend([
                 f"Your previous observation is:{observation.observation}",
                 f"The reason for determining that the task is not completed is:{observation.reason}",
                 "Now, please reason about the current task again."
             ])
-        for item in surroundings:
+        if note.current_step().vision:
             user_prompt.extend([
-                f"vyaw: {item['vyaw']}, image:",
-                item["image"],
+                "The environment around you and the corresponding vyaw value are as follows:"
             ])
+            for item in note.current_step().vision:
+                user_prompt.extend([
+                    f"vyaw: {item.vyaw}, image:",
+                    item.image,
+                ])
+        else:
+            user_prompt.extend(["The current environment images are not provided. Only obtain them when absolutely necessary, otherwise you can finish the task."])
 
         completion = self.llm.generate(records=[
             Message.system(sys_prompt),
@@ -100,17 +101,17 @@ class ReactExcute(BaseLLMBackend, BaseWorker):
 
         get_surrounding_image = GetSurroundingImage()
         get_surrounding_image._parent = self
-        result = get_surrounding_image._run()
-        if result["code"] != 0:
+        res = get_surrounding_image._run(memorize=False)
+        if res["code"] != 0:
             raise Exception("Get surrounding image failed")
         
-        surroundings = result["surroundings"]
+        vision_states = res["surroundings"]
 
         user_prompt = [f"Completing the following conditions means you have completed the task:{proof_of_completion}", "The environment around you and the corresponding vyaw value are as follows:"]    
-        for item in surroundings:
+        for item in vision_states:
             user_prompt.extend([
-                f"vyaw: {item['vyaw']}, image:",
-                item["image"],
+                f"vyaw: {item.vyaw}, image:",
+                item.image,
             ])
             
         completion = self.llm.generate(records=[
@@ -118,5 +119,10 @@ class ReactExcute(BaseLLMBackend, BaseWorker):
             Message.user(content=user_prompt)
         ],
         response_format=ObservationResult)
+
+        note = self.stm(self.workflow_instance_id)["note"]
+        note.current_step().vision = vision_states
+        self.stm(self.workflow_instance_id)["note"] = note
+        
         print(11111111111111111, completion["choices"][0]["message"]["content"])
         return ObservationResult.model_validate_json(completion["choices"][0]["message"]["content"])

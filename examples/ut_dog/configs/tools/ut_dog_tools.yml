@@ -5,5 +5,21 @@ prompts:
     - template: "agent/workers/react/tool_user_prompt.prompt"
       role: "user"
 tools:
-    - Move
-    - GetSurroundingImage
+    - name: Move
+      network_interface_name: "eth0"
+    - name: GetImageSample
+      network_interface_name: "eth0"
+    - name: GetSurroundingImage
+      network_interface_name: "eth0"
+    # - name: TurnLeft
+    #   network_interface_name: "eth0"
+    # - name: TurnRight
+    #   network_interface_name: "eth0"
+    # - name: MoveLeft
+    #   network_interface_name: "eth0"
+    # - name: MoveRight
+    #   network_interface_name: "eth0"
+    # - name: MoveForward
+    #   network_interface_name: "eth0"
+    # - name: MoveBackward
+    #   network_interface_name: "eth0"
