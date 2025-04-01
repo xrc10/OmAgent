@@ -10,16 +10,15 @@ from omagent_core.models.llms.base import BaseLLMBackend
 from omagent_core.models.llms.schemas import Message
 from agent.tools.move import Move
 from agent.tools.get_image_sample import GetImageSample
-from agent.schemas.note import Note
+from agent.schemas.note import Note, Step
 from time import sleep
 from agent.tools.get_surrounding_image import GetSurroundingImage
 
 CURRENT_PATH = Path(__file__).parents[0]
 
 class Task4gen(BaseModel):
-    instruction: str = Field(description="The instruction of the step, describe what should be done. Should be simple and feasible")
-    proof_of_completion: str = Field(description="Used to determine whether the step has been completed. It should be able to verify based on the current view of the robot. ")
-    is_done: bool = Field(description="Whether the step is done.", literal=False)
+    instruction: str = Field(description="The instruction of the step, describe what should be done. ")
+    proof_of_completion: str = Field(description="The evidences to proof the step has been completed. It should be as comprehensive and necessary as possible and should be able to verify based on the current view of the robot. ")
 
 class Note4gen(BaseModel):
     content: List[Task4gen]
@@ -68,13 +67,17 @@ class Planning(BaseLLMBackend, BaseWorker):
             response_format=Note4gen
             )
         
-        print(1111111111111111111, result["choices"][0]["message"]["content"])
-
         note = Note4gen(**json.loads(result["choices"][0]["message"]["content"])).to_note_memory()
         note.origin_vision = vision_states
-        note.save(CURRENT_PATH.joinpath("memory"))
+        note.current_task().steps.append(Step(vision=vision_states))
+        note.save()
         self.stm(self.workflow_instance_id)["note"] = note
 
-        self.callback.send_block(agent_id=self.workflow_instance_id, msg=f"In order to complete the task you have assigned to me, I have formulated the following plan.\n{str(self.stm(self.workflow_instance_id).get('note'))}")
+
+        self.callback.info(
+            agent_id=self.workflow_instance_id,
+            progress=f"Planning",
+            message=f'Planning completed.\n{str(self.stm(self.workflow_instance_id).get("note"))}',
+        )
 
         return {"user_instruction": user_instruction}

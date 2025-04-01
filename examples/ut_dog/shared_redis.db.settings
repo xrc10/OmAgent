@@ -1,1 +1,1 @@
-{"pidfile": "/tmp/tmpk_ghrpht/redis.pid", "unixsocket": "/tmp/tmpk_ghrpht/redis.socket", "dbdir": "/home/unitree/zl/proj/OmAgent/examples/ut_dog", "dbfilename": "shared_redis.db"}
+{"pidfile": "/tmp/tmp7nkm9ci7/redis.pid", "unixsocket": "/tmp/tmp7nkm9ci7/redis.socket", "dbdir": "/home/unitree/zl/proj/OmAgent/examples/ut_dog", "dbfilename": "shared_redis.db"}

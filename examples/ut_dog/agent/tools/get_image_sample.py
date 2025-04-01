@@ -52,7 +52,8 @@ class GetImageSample(BaseTool):
             raise Exception(f"Get image sample failed: {code}")
 
         image_array = np.frombuffer(bytes(data), np.uint8)
-        image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)        
+        image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         pil_image = Image.fromarray(image)
         
         # Resize image to have longest edge as 512 pixels while maintaining aspect ratio

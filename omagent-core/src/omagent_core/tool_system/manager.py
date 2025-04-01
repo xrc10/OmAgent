@@ -266,7 +266,7 @@ class ToolManager(BaseLLMBackend):
                     }
                     self.callback.info(
                         agent_id=self.workflow_instance_id,
-                        progress=f"Conqueror",
+                        progress=f"Tool calling",
                         message=f'Tool {toolcall_structure["name"]} executing. Arguments: {toolcall_structure["arguments"]}',
                     )
 
@@ -278,7 +278,7 @@ class ToolManager(BaseLLMBackend):
                     
                     self.callback.info(
                         agent_id=self.workflow_instance_id,
-                        progress=f"Conqueror",
+                        progress=f"Tool calling",
                         message=f'Tool {toolcall_structure["name"]} executed successfully. Result: {result}',
                     )
                 return "success", tool_execution_res

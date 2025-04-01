@@ -1,8 +1,5 @@
 from pathlib import Path
-import json
 from omagent_core.engine.worker.base import BaseWorker
-from omagent_core.utils.general import read_image
-from omagent_core.utils.logger import logging
 from omagent_core.utils.registry import registry
 from omagent_core.models.llms.base import BaseLLMBackend
 from omagent_core.tool_system.manager import ToolManager
@@ -10,11 +7,8 @@ from omagent_core.models.llms.schemas import Message
 from agent.tools.get_surrounding_image import GetSurroundingImage
 from omagent_core.models.llms.prompt.prompt import PromptTemplate
 from pydantic import BaseModel, Field
-from agent.tools.move import Move
-from agent.tools.get_image_sample import GetImageSample
 from agent.schemas.note import Note, Step
 from time import sleep
-from PIL import Image
 
 CURRENT_PATH = Path(__file__).parents[0]
 
@@ -28,34 +22,53 @@ class ReactExcute(BaseLLMBackend, BaseWorker):
     tool_manager: ToolManager
     def _run(self, *args, **kwargs):
         # Read user input through configured input interface
-        note: Note= self.stm(self.workflow_instance_id).get("note")
-        if not note.current_task().steps:
-            note.current_task().steps.append(Step())
-        current_task = note.current_task()
         observation = None
 
         for action_limit in range(3):
+            note: Note= self.stm(self.workflow_instance_id).get("note")
+            current_task = note.current_task()
+
             self.callback.send_block(agent_id=self.workflow_instance_id, msg=f"The current task is:{current_task.instruction}")
             plan = self.reasoning(current_task.instruction, observation)
-            self.callback.send_block(agent_id=self.workflow_instance_id, msg=f"After reasoning, I have the following plan:\n{plan}")
+            note.current_step().plan = plan
+            note.save()
+            self.stm(self.workflow_instance_id)["note"] = note
+            # self.callback.send_block(agent_id=self.workflow_instance_id, msg=f"After reasoning, I have the following plan:\n{plan}")
             
             execution_status, execution_results = self.tool_manager.execute_task(plan)
             if execution_status != "success":
                 self.callback.send_block(agent_id=self.workflow_instance_id, msg=f"Plan execution failed")
-                raise Exception(f"Execution failed, {execution_results}")
+                raise Exception(f"Execution failed, {execution_results['result']}")
+            
+            note.current_step().execute_result = execution_results[-1]['result']
+            note.save()
+            self.stm(self.workflow_instance_id)["note"] = note
             
             self.callback.send_block(agent_id=self.workflow_instance_id, msg=f"Plan execution completed")
             
-            observation = self.observing(current_task.proof_of_completion)
+            observation, vision_states = self.observing(current_task.proof_of_completion)
+
+            self.callback.info(
+                agent_id=self.workflow_instance_id,
+                progress=f"The {action_limit+1} action finished",
+                message=f'Here is the current status\n{str(self.stm(self.workflow_instance_id).get("note"))}',
+            )
             if observation.is_done:
                 current_task.is_done = True
                 self.callback.send_block(agent_id=self.workflow_instance_id, msg=f"The current task is completed.\n{str(note)}")
+                note.save()
                 self.stm(self.workflow_instance_id)["note"] = note
-                if len(note.unfinished_steps()) == 0:
+                if len(note.unfinished_tasks()) == 0:
                     return {"all_tasks_finished": True}
                 else:
+                    note.unfinished_tasks()[0].steps.append(Step(vision=vision_states))
+                    note.save()
+                    self.stm(self.workflow_instance_id)["note"] = note
                     return {"all_tasks_finished": False}
             else:
+                note.current_step().vision = vision_states
+                note.save()
+                self.stm(self.workflow_instance_id)["note"] = note
                 self.callback.send_block(agent_id=self.workflow_instance_id, msg=f"The current task is not completed. Reason: {observation.reason}")
                 
         self.callback.send_block(agent_id=self.workflow_instance_id, msg=f"I tried 3 times, but still failed the task {current_task.instruction}")
@@ -92,6 +105,12 @@ class ReactExcute(BaseLLMBackend, BaseWorker):
             Message.user(content=user_prompt)
         ])
 
+        self.callback.info(
+            agent_id=self.workflow_instance_id,
+            progress=f"Reasoning",
+            message=f'Reasoning completed. I have the following plan:\n{completion["choices"][0]["message"]["content"]}',
+        )
+
         return completion["choices"][0]["message"]["content"]
     
     def observing(self, proof_of_completion:str):
@@ -105,7 +124,7 @@ class ReactExcute(BaseLLMBackend, BaseWorker):
         if res["code"] != 0:
             raise Exception("Get surrounding image failed")
         
-        vision_states = res["surroundings"]
+        vision_states = res["vision_states"]
 
         user_prompt = [f"Completing the following conditions means you have completed the task:{proof_of_completion}", "The environment around you and the corresponding vyaw value are as follows:"]    
         for item in vision_states:
@@ -120,9 +139,12 @@ class ReactExcute(BaseLLMBackend, BaseWorker):
         ],
         response_format=ObservationResult)
 
-        note = self.stm(self.workflow_instance_id)["note"]
-        note.current_step().vision = vision_states
-        self.stm(self.workflow_instance_id)["note"] = note
+        res = ObservationResult.model_validate_json(completion["choices"][0]["message"]["content"])
+
+        self.callback.info(
+            agent_id=self.workflow_instance_id,
+            progress=f"Observing",
+            message=f'Observing completed.\n My observation is: {res.observation}\nIs the task completed? {res.is_done} \nThe reason is: {res.reason}',
+        )
         
-        print(11111111111111111, completion["choices"][0]["message"]["content"])
-        return ObservationResult.model_validate_json(completion["choices"][0]["message"]["content"])
+        return res, vision_states

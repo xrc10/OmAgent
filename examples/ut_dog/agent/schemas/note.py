@@ -1,6 +1,11 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from PIL import Image
+import os
+import json
+from datetime import datetime
+import shutil
+from pathlib import Path
 
 class VisionState(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
@@ -18,7 +23,7 @@ class Task(BaseModel):
     instruction: str = Field(description="The instruction of the step, describe what should be done. Should be simple and feasible")
     steps: List[Step] = Field(description="The information about the steps that need to be executed to complete the task. Only return empty list when generating.", default=[])
     proof_of_completion: str = Field(description="Used to determine whether the step has been completed. It should be able to verify based on the current view of the robot. ")
-    is_done: bool = Field(description="Whether the step is done.", literal=False)
+    is_done: bool = Field(description="Whether the step is done.", default=False)
 
 
 class Note(BaseModel):
@@ -33,9 +38,11 @@ class Note(BaseModel):
             
             if task.steps:
                 for i, step in enumerate(task.steps):
-                    result.append(f"\n### Step {i+1}")
-                    result.append(f"**Plan**: {step.plan}")
-                    result.append(f"**Result**: {step.execute_result}")
+                    if step.plan:
+                        result.append(f"\n### Step {i+1}")
+                        result.append(f"**Plan**: {step.plan}")
+                    if step.execute_result:
+                        result.append(f"**Result**: {step.execute_result}")
             
             result.append("")  # Add empty line between tasks
         
@@ -59,17 +66,15 @@ class Note(BaseModel):
         else:
             return None
         
-    def save(self, output_dir: str):
+    def save(self, output_dir: str = Path(__file__).parents[2].joinpath("running_memory")):
         """
         Save the Note as markdown files.
         
         Args:
             output_dir: The directory to save the note files
         """
-        import os
-        import base64
-        import json
-        from datetime import datetime
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
         
         # Create output directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)
@@ -85,6 +90,29 @@ class Note(BaseModel):
         # Main markdown content
         main_content = []
         main_content.append("# Tasks\n")
+        
+        # Save origin vision if available
+        if self.origin_vision:
+            main_content.append("\n## Initial Environment\n")
+            main_content.append('<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-start;">\n')
+            
+            for vision_idx, vision in enumerate(self.origin_vision):
+                # Save the PIL image to a file
+                img_filename = f"origin_vision_{vision_idx}.jpg"
+                img_path = os.path.join(images_dir, img_filename)
+                
+                try:
+                    vision.image.save(img_path)
+                    # Add image reference to markdown with styling for 4 per row
+                    relative_img_path = os.path.join("images", img_filename)
+                    main_content.append(f'<div style="width: 20%; min-width: 200px; margin-bottom: 15px;">\n')
+                    main_content.append(f'<img src="{relative_img_path}" alt="Origin Vision {vision_idx}" style="width: 100%; height: auto;">\n')
+                    main_content.append(f'<p>VYaw: {vision.vyaw}</p>\n')
+                    main_content.append('</div>\n')
+                except Exception as e:
+                    main_content.append(f"<p>Error saving origin image: {str(e)}</p>\n")
+            
+            main_content.append('</div>\n\n')
         
         # Load existing metadata if available
         metadata_file = os.path.join(metadata_dir, "tasks_metadata.json")
@@ -153,52 +181,25 @@ class Note(BaseModel):
                         # Process vision data
                         if step.vision:
                             step_content.append("\n**Vision**:\n")
+                            step_content.append('<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-start;">\n')
                             
                             for vision_idx, vision in enumerate(step.vision):
                                 # Save the PIL image to a file
                                 img_filename = f"{task_id}_step{step_idx}_vision{vision_idx}.jpg"
                                 img_path = os.path.join(images_dir, img_filename)
                                 
-                                # Save image file if it's a PIL Image
-                                if isinstance(vision.image, Image.Image):
-                                    try:
-                                        vision.image.save(img_path)
-                                        # Add image reference to markdown
-                                        relative_img_path = os.path.join("images", img_filename)
-                                        step_content.append(f"![Vision {vision_idx}]({relative_img_path})\n")
-                                        step_content.append(f"VYaw: {vision.vyaw}\n\n")
-                                    except Exception as e:
-                                        step_content.append(f"Error saving image: {str(e)}\n")
-                                # Handle case where image might be a string path or base64
-                                elif isinstance(vision.image, str):
-                                    if vision.image.startswith(('data:image', 'base64')):
-                                        # Extract the base64 content
-                                        if ',' in vision.image:
-                                            _, img_data = vision.image.split(',', 1)
-                                        else:
-                                            img_data = vision.image
-                                        
-                                        # Clean up base64 prefix if present
-                                        if img_data.startswith('base64,'):
-                                            img_data = img_data.replace('base64,', '', 1)
-                                        
-                                        # Save image file if it doesn't exist
-                                        if not os.path.exists(img_path):
-                                            try:
-                                                img_data_decoded = base64.b64decode(img_data)
-                                                with open(img_path, "wb") as img_file:
-                                                    img_file.write(img_data_decoded)
-                                            except Exception as e:
-                                                step_content.append(f"Error saving image: {str(e)}\n")
-                                        
-                                        # Add image reference to markdown
-                                        relative_img_path = os.path.join("images", img_filename)
-                                        step_content.append(f"![Vision {vision_idx}]({relative_img_path})\n")
-                                    else:
-                                        # If it's already a path, just reference it
-                                        step_content.append(f"![Vision {vision_idx}]({vision.image})\n")
-                                    
-                                    step_content.append(f"VYaw: {vision.vyaw}\n\n")
+                                try:
+                                    vision.image.save(img_path)
+                                    # Add image reference to markdown with styling for 4 per row
+                                    relative_img_path = os.path.join("images", img_filename)
+                                    step_content.append(f'<div style="width: 20%; min-width: 200px; margin-bottom: 15px;">\n')
+                                    step_content.append(f'<img src="{relative_img_path}" alt="Vision {vision_idx}" style="width: 100%; height: auto;">\n')
+                                    step_content.append(f'<p>VYaw: {vision.vyaw}</p>\n')
+                                    step_content.append('</div>\n')
+                                except Exception as e:
+                                    step_content.append(f"<p>Error saving image: {str(e)}</p>\n")
+                            
+                            step_content.append('</div>\n')
                         
                         task_content.extend(step_content)
                 

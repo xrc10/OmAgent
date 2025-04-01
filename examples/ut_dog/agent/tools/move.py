@@ -89,22 +89,27 @@ class Move(BaseTool):
                     remaining_vyaw = max(0, remaining_vyaw - abs(current_vyaw))
                     
                     time.sleep(1)
+            else:
+                code = self.sport_client.Move(vx, vy, vyaw)
                 
-                return {
-                    "code": 0,
-                    "msg": "success",
-                }
-            
-            code = self.sport_client.Move(vx, vy, vyaw)
             if code != 0:
                 raise Exception(f"code: {code}")
+            result_string = "Successfully move the robot dog."
+            if vx != 0:
+                result_string += f"forward: {vx}m"
+            if vy != 0:
+                result_string += f"left: {vy}m"
+            if vyaw != 0:
+                result_string += f"rotate: {vyaw}rad"
             return {
                 "code": code,
                 "msg": "success",
+                "result": result_string
             }
         except Exception as e:
             logging.error(f"Move failed: {e}")
             return {
                 "code": 500,
                 "msg": "failed",
+                "result": f"Failed to move the robot dog. The reason is {e}"
             }
