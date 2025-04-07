@@ -11,6 +11,7 @@ from omagent_core.utils.registry import registry
 
 # Import agent-specific components
 from agent.input_interface.input_interface import InputInterface
+from agent.input_interface.input_interface_first import InputInterfaceFirst
 from agent.vqa_with_mem0.nested_worker import NestedWorker
 
 # Initialize logging
@@ -30,23 +31,25 @@ container.from_config(CURRENT_PATH.joinpath("container.yaml"))
 workflow = ConductorWorkflow(name="VQA_with_mem0_v2")
 
 # Define simplified workflow tasks:
+# 0. Get first input from user (image and question)
+task0 = simple_task(task_def_name="InputInterfaceFirst", task_reference_name="input_interface_first")
+
 # 1. Get input from user (image and question)
 task1 = simple_task(task_def_name="InputInterface", task_reference_name="input_interface")
 
 # 2. Process the input with the nested worker that handles all VQA functionality
 task2 = simple_task(task_def_name="NestedWorker", 
-                    task_reference_name="nested_worker",
-                    inputs={"user_instruction": task1.output("user_instruction")})
+                    task_reference_name="nested_worker")
 
 # Create outer loop that continues until user indicates they want to exit
 conversation_loop = DoWhileTask(
     task_ref_name="conversation_loop",
-    tasks=[task1, task2],
-    termination_condition='if ($.nested_worker["should_exit"] == true){false;} else {true;} ',
+    tasks=[task2, task1],
+    termination_condition='if ($.input_interface["should_exit"] == true){false;} else {true;} ',
 )
 
 # Create the main workflow sequence
-workflow >> conversation_loop
+workflow >> task0 >> conversation_loop
 
 # Register workflow with conductor server
 workflow.register(True)
@@ -56,6 +59,6 @@ config_path = CURRENT_PATH.joinpath("configs")
 agent_client = AppClient(
     interactor=workflow, 
     config_path=config_path, 
-    workers=[InputInterface(), NestedWorker()]
+    workers=[InputInterfaceFirst(), InputInterface(), NestedWorker()]
 )
 agent_client.start_interactor()

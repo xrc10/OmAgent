@@ -9,7 +9,7 @@ CURRENT_PATH = Path(__file__).parents[0]
 
 
 @registry.register_worker()
-class InputInterface(BaseWorker):
+class InputInterfaceFirst(BaseWorker):
     """Input interface processor that handles user instructions and image input.
 
     This processor:
@@ -38,13 +38,14 @@ class InputInterface(BaseWorker):
 
         # Read user input through configured input interface
 
-        user_input = self.input.read_input(
-            workflow_instance_id=self.workflow_instance_id
-        )
-
-        # user_input = self.input.read_first_input(
+        # user_input = self.input.read_input(
         #     workflow_instance_id=self.workflow_instance_id,
+        #     input_prompt="Please provide your question and image."
         # )
+
+        user_input = self.input.read_first_input(
+            workflow_instance_id=self.workflow_instance_id,
+        )
 
         # Extract user_id from kwargs if present
         user_id = None
@@ -81,10 +82,5 @@ class InputInterface(BaseWorker):
         should_exit = False
         if any(keyword in user_instruction.lower() for keyword in ["退出", "结束", "再见"]):
             should_exit = True
-            # Send exit message to user
-            self.callback.send_answer(
-                self.workflow_instance_id,
-                msg="再见！"
-            )
 
         return {"user_instruction": user_instruction, "user_id": user_id, "image_url": image_path, "should_exit": should_exit}
