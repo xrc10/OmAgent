@@ -3,4 +3,5 @@ name: VQAAnswerGenerator
 # llm: ${sub|fk77_dpo}
 # llm: ${sub|intern25_vl_1b_remote}
 # llm: ${sub|qwen25_vl_3b_remote}
-llm: ${sub|qwen25_vl_3b_local}
+# llm: ${sub|qwen25_vl_3b_local}
+llm: ${sub|qwen25vl_7b_sf}

@@ -9,7 +9,7 @@ class MemoryManager:
             "vector_store": {
                 "provider": "qdrant",
                 "config": {
-                    "host": "localhost",
+                    "host": "10.8.25.20",
                     "port": 6333,
                 }
             },

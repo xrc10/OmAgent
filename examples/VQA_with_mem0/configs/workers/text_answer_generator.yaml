@@ -1,3 +1,4 @@
 name: TextAnswerGenerator
 # llm: ${sub|qwen25_7b_remote}
-llm: ${sub|qwen25_7b_sf}
+# llm: ${sub|qwen25_7b_sf}
+llm: ${sub|qwen25_7b_local}
